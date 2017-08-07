@@ -2,7 +2,7 @@
 
 [![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
 
-Create marks and measures for arbitrary measures of time.
+Create marks and measures for arbitrary units of time. Measure latency of database calls, third party requests, or code blocks and visualize them in [IOpipe](https://iopipe.com)!
 
 ## Requirements
 - Node >= `4.3.2`
