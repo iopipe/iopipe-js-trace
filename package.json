@@ -1,0 +1,65 @@
+{
+  "name": "iopipe-plugin-trace",
+  "version": "0.1.0",
+  "description": "IOpipe plugin for tracing metrics",
+  "main": "dist/index.js",
+  "scripts": {
+    "babel": "babel src --out-dir dist --ignore **/*.test.js,**/__mocks__/**",
+    "build": "npm run babel",
+    "eslint": "eslint src spec acceptance",
+    "jest": "jest",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build",
+    "test": "npm run eslint && npm run build && npm run jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iopipe/iopipe-plugin-trace.git"
+  },
+  "files": [
+    "dist/"
+  ],
+  "keywords": [
+    "serverless",
+    "analytics",
+    "metrics",
+    "telemetry",
+    "tracing",
+    "distributed tracing"
+  ],
+  "author": "IOpipe <dev@iopipe.com>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/iopipe/iopipe-plugin-trace/issues"
+  },
+  "homepage": "https://github.com/iopipe/iopipe-plugin-trace#readme",
+  "devDependencies": {
+    "aws-lambda-mock-context": "^3.0.0",
+    "babel-cli": "^6.24.1",
+    "babel-core": "^6.25.0",
+    "babel-eslint": "^7.2.3",
+    "babel-preset-env": "^1.6.0",
+    "delay": "^2.0.0",
+    "eslint": "^3.12.2",
+    "eslint-plugin-jasmine": "^2.5.0",
+    "eslint-plugin-jest": "^20.0.3",
+    "eslint-plugin-prettier": "^2.1.2",
+    "iopipe": "^0.7.0",
+    "jest": "^20.0.4",
+    "lodash": "^4.17.4",
+    "pre-commit": "^1.2.2",
+    "prettier": "^1.5.2"
+  },
+  "dependencies": {
+    "performance-node": "^0.2.0"
+  },
+  "pre-commit": [
+    "test"
+  ],
+  "jest": {
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "dist"
+    ]
+  }
+}
