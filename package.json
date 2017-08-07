@@ -44,7 +44,7 @@
     "eslint-plugin-jasmine": "^2.5.0",
     "eslint-plugin-jest": "^20.0.3",
     "eslint-plugin-prettier": "^2.1.2",
-    "iopipe": "^0.7.0",
+    "iopipe": "^0.8.0",
     "jest": "^20.0.4",
     "lodash": "^4.17.4",
     "pre-commit": "^1.2.2",
