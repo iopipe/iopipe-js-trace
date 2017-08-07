@@ -19,7 +19,7 @@ With npm in project directory:
 
 `npm install iopipe-plugin-trace`
 
-Then, run your serverless function:
+Then include the plugin with IOpipe in your serverless function:
 
 ```js
 const iopipeLib = require('iopipe');
