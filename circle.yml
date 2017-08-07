@@ -21,10 +21,3 @@ deployment:
       # login using environment variables
       - echo -e "$NPM_USERNAME\n$NPM_PASSWORD\n$NPM_EMAIL" | npm login
       - npm publish
-
-  acceptanceTests:
-    branch: master
-    owner: iopipe
-    commands:
-      - npm run build
-      - cd acceptance && yarn && yarn run all
