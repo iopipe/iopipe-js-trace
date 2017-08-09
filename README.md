@@ -46,9 +46,11 @@ exports.handler = iopipe((event, context) => {
 
 ```js
 // create the start mark
+// the string argument is a name you are assigning the particular trace
 context.iopipe.mark.start('db');
 
 // create the end mark
+// pass the name of the trace that you want to end
 context.iopipe.mark.end('db');
 
 // create an custom measurement between start:init and end:db

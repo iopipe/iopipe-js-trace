@@ -16,9 +16,7 @@
     "type": "git",
     "url": "git+https://github.com/iopipe/iopipe-plugin-trace.git"
   },
-  "files": [
-    "dist/"
-  ],
+  "files": ["dist/"],
   "keywords": [
     "serverless",
     "analytics",
@@ -44,22 +42,17 @@
     "eslint-plugin-jasmine": "^2.5.0",
     "eslint-plugin-jest": "^20.0.3",
     "eslint-plugin-prettier": "^2.1.2",
-    "iopipe": "^0.8.0",
     "jest": "^20.0.4",
     "lodash": "^4.17.4",
     "pre-commit": "^1.2.2",
     "prettier": "^1.5.2"
   },
   "dependencies": {
+    "iopipe": "^0.8.0",
     "performance-node": "^0.2.0"
   },
-  "pre-commit": [
-    "test"
-  ],
+  "pre-commit": ["test"],
   "jest": {
-    "coveragePathIgnorePatterns": [
-      "/node_modules/",
-      "dist"
-    ]
+    "coveragePathIgnorePatterns": ["/node_modules/", "dist"]
   }
 }
