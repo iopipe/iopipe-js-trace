@@ -13,11 +13,11 @@ Create marks and measures for arbitrary units of time. Measure latency of databa
 
 With [yarn](https://yarnpkg.com) (recommended) in project directory:
 
-`yarn add iopipe-plugin-trace`
+`yarn add iopipe iopipe-plugin-trace`
 
 With npm in project directory:
 
-`npm install iopipe-plugin-trace`
+`npm install iopipe iopipe-plugin-trace`
 
 Then include the plugin with IOpipe in your serverless function:
 
@@ -46,9 +46,11 @@ exports.handler = iopipe((event, context) => {
 
 ```js
 // create the start mark
+// the string argument is a name you are assigning the particular trace
 context.iopipe.mark.start('db');
 
 // create the end mark
+// pass the name of the trace that you want to end
 context.iopipe.mark.end('db');
 
 // create an custom measurement between start:init and end:db
