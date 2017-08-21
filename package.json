@@ -48,7 +48,7 @@
     "prettier": "^1.5.2"
   },
   "dependencies": {
-    "iopipe": "^0.8.0",
+    "iopipe": "^1.0.0",
     "performance-node": "^0.2.0"
   },
   "pre-commit": ["test"],
