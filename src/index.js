@@ -48,7 +48,7 @@ class TracePlugin {
     };
     this.meta = {
       name: 'trace',
-      version: process.env.npm_package_version,
+      version: '0.1.2',
       homepage: 'https://github.com/iopipe/iopipe-plugin-trace'
     };
     return this;
