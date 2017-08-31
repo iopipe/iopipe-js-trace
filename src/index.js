@@ -46,6 +46,11 @@ class TracePlugin {
       'post:setup': this.postSetup.bind(this),
       'pre:report': this.preReport.bind(this)
     };
+    this.meta = {
+      name: 'trace',
+      version: process.env.npm_package_version,
+      homepage: 'https://github.com/iopipe/iopipe-plugin-trace'
+    };
     return this;
   }
   postSetup() {
