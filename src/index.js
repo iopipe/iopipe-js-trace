@@ -1,6 +1,7 @@
 import Perf from 'performance-node';
 
 import { addToReport } from './addToReport';
+import pkg from '../package.json';
 
 function getConfig(config = {}) {
   const { autoMeasure = true } = config;
@@ -46,12 +47,10 @@ class TracePlugin {
       'post:setup': this.postSetup.bind(this),
       'pre:report': this.preReport.bind(this)
     };
-    this.meta = {
-      name: 'trace',
-      version: '0.1.2',
-      homepage: 'https://github.com/iopipe/iopipe-plugin-trace'
-    };
     return this;
+  }
+  meta() {
+    return { name: pkg.name, version: pkg.version, homepage: pkg.homepage };
   }
   postSetup() {
     this.invocationInstance.context.iopipe.mark = {
