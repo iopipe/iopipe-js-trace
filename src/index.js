@@ -49,7 +49,7 @@ class TracePlugin {
     };
     return this;
   }
-  meta() {
+  get meta() {
     return { name: pkg.name, version: pkg.version, homepage: pkg.homepage };
   }
   postSetup() {
