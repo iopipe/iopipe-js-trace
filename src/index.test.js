@@ -3,6 +3,7 @@ import delay from 'delay';
 import iopipe from 'iopipe';
 import mockContext from 'aws-lambda-mock-context';
 import Perf from 'performance-node';
+import pkg from '../package.json';
 
 jest.mock('./addToReport');
 import Tracer from './index';
@@ -18,6 +19,9 @@ test('Can instantiate the plugin with no options', () => {
   expect(_.isPlainObject(inst.config)).toBe(true);
   expect(inst.timeline instanceof Perf).toBe(true);
   expect(inst.config.autoMeasure).toBe(true);
+  expect(inst.meta.name).toBe(pkg.name);
+  expect(inst.meta.version).toBe(pkg.version);
+  expect(inst.meta.homepage).toBe(pkg.homepage);
 });
 
 test('Works with iopipe', async () => {
