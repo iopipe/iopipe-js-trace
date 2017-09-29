@@ -1,6 +1,7 @@
 import Perf from 'performance-node';
 
 import { addToReport } from './addToReport';
+import pkg from '../package.json';
 
 function getConfig(config = {}) {
   const { autoMeasure = true } = config;
@@ -47,6 +48,9 @@ class TracePlugin {
       'pre:report': this.preReport.bind(this)
     };
     return this;
+  }
+  get meta() {
+    return { name: pkg.name, version: pkg.version, homepage: pkg.homepage };
   }
   postSetup() {
     this.invocationInstance.context.iopipe.mark = {
