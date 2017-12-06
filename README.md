@@ -26,6 +26,7 @@ const iopipeLib = require('iopipe');
 const tracePlugin = require('iopipe-plugin-trace');
 
 const iopipe = iopipeLib({
+  token: 'TOKEN_HERE',
   plugins: [tracePlugin()]
 });
 
