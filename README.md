@@ -13,17 +13,17 @@ Create marks and measures for arbitrary units of time. Measure latency of databa
 
 With [yarn](https://yarnpkg.com) (recommended) in project directory:
 
-`yarn add iopipe-plugin-trace`
+`yarn add @iopipe/trace`
 
 With npm in project directory:
 
-`npm install iopipe-plugin-trace`
+`npm install @iopipe/trace`
 
 Then include the plugin with IOpipe in your serverless function:
 
 ```js
 const iopipeLib = require('iopipe');
-const tracePlugin = require('iopipe-plugin-trace');
+const tracePlugin = require('@iopipe/trace');
 
 const iopipe = iopipeLib({
   token: 'TOKEN_HERE',

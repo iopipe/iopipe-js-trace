@@ -1,6 +1,6 @@
 {
-  "name": "iopipe-plugin-trace",
-  "version": "0.2.0",
+  "name": "@iopipe/trace",
+  "version": "0.3.0",
   "description": "IOpipe plugin for tracing metrics",
   "main": "dist/index.js",
   "scripts": {
