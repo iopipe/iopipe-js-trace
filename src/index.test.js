@@ -19,7 +19,7 @@ test('Can instantiate the plugin with no options', () => {
   expect(_.isPlainObject(inst.config)).toBe(true);
   expect(inst.timeline instanceof Perf).toBe(true);
   expect(inst.config.autoMeasure).toBe(true);
-  expect(inst.meta.name).toBe('iopipe-plugin-trace');
+  expect(inst.meta.name).toBe('@iopipe/trace');
   expect(inst.meta.version).toBe(pkg.version);
   expect(inst.meta.homepage).toBe(pkg.homepage);
 });
