@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import delay from 'delay';
-import iopipe from 'iopipe';
+import iopipe from '@iopipe/core';
 import mockContext from 'aws-lambda-mock-context';
 import Perf from 'performance-node';
 import pkg from '../package.json';
