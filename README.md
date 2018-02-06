@@ -7,7 +7,7 @@ Create marks and measures for arbitrary units of time. Measure latency of databa
 ## Requirements
 - Node >= `4.3.2`
 - NPM >= `2.14.12`
-- IOpipe >= `0.8.0`
+- [IOpipe](https://github.com/iopipe/iopipe-js) >= `1.x`
 
 ## Install
 

@@ -50,7 +50,6 @@
     "prettier": "^1.5.2"
   },
   "dependencies": {
-    "@iopipe/core": "^1.5.0",
     "performance-node": "^0.2.0"
   },
   "pre-commit": [
@@ -61,5 +60,8 @@
       "/node_modules/",
       "dist"
     ]
+  },
+  "peerDependencies": {
+    "@iopipe/core": "1.x"
   }
 }
