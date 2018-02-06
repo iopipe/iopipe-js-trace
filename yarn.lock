@@ -2,7 +2,7 @@
 # yarn lockfile v1
 
 
-"@iopipe/core@1.x":
+"@iopipe/core@^1.x":
   version "1.5.0"
   resolved "https://registry.yarnpkg.com/@iopipe/core/-/core-1.5.0.tgz#40d47861fadca698cd42d2af2d7f82e0914eb194"
   dependencies:

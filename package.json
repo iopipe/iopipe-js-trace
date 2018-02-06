@@ -34,6 +34,7 @@
   },
   "homepage": "https://github.com/iopipe/iopipe-plugin-trace#readme",
   "devDependencies": {
+    "@iopipe/core": "^1.x",
     "aws-lambda-mock-context": "^3.0.0",
     "babel-cli": "^6.24.1",
     "babel-core": "^6.25.0",
