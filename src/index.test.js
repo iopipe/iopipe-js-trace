@@ -42,14 +42,19 @@ test('Works with iopipe', async () => {
       testEndDate = Date.now() + 1;
       context.succeed('wow');
     });
-    const context = mockContext({ functionName: 'test-1' });
+    const context = mockContext({ functionName: 'test-1a' });
     wrappedFn({}, context);
 
     const val = await context.Promise;
     expect(val).toBe('wow');
 
+    // run 2 invocations, to more accurately determine trace durations
+    const context2 = mockContext({ functionName: 'test-1b' });
+    wrappedFn({}, context2);
+
+    await context2.Promise;
     const report = _.chain(invocations)
-      .find(obj => obj.context.functionName === 'test-1')
+      .find(obj => obj.context.functionName === 'test-1b')
       .get('report')
       .value();
 
