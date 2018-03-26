@@ -3,14 +3,15 @@ import delay from 'delay';
 import iopipe from '@iopipe/core';
 import mockContext from 'aws-lambda-mock-context';
 import Perf from 'performance-node';
-import pkg from '../package.json';
-
-jest.mock('./addToReport');
-import Tracer from './index';
+import pkg from '../package';
 import { invocations } from './addToReport';
 
+const tracePlugin = require('.');
+
+jest.mock('./addToReport');
+
 test('Can instantiate the plugin with no options', () => {
-  const plugin = Tracer();
+  const plugin = tracePlugin();
   const inst = plugin({});
   expect(_.isFunction(inst.hooks['post:setup'])).toBe(true);
   expect(_.isFunction(inst.postSetup)).toBe(true);
@@ -26,9 +27,8 @@ test('Can instantiate the plugin with no options', () => {
 
 test('Works with iopipe', async () => {
   try {
-    const iopipeInstance = iopipe({ token: 'test', plugins: [Tracer()] });
-    let testStartDate = undefined;
-    let testEndDate = undefined;
+    const iopipeInstance = iopipe({ token: 'test', plugins: [tracePlugin()] });
+    let testStartDate, testEndDate;
     const wrappedFn = iopipeInstance(async (event, context) => {
       const { mark, measure } = context.iopipe;
       testStartDate = Date.now() - 1;
@@ -54,9 +54,9 @@ test('Works with iopipe', async () => {
       .value();
 
     const { performanceEntries } = report.report;
-    expect(performanceEntries.length).toBe(7);
+    expect(performanceEntries).toHaveLength(7);
     const [startMark, customMeasure, measure, endMark] = performanceEntries;
-    expect(_.inRange(measure.duration, 5, 20));
+    expect(_.inRange(measure.duration, 5, 20)).toBe(true);
     expect(_.isNumber(startMark.timestamp)).toBe(true);
     expect(startMark.timestamp > 15e11).toBe(true);
     expect(_.inRange(startMark.timestamp, testStartDate, testEndDate)).toBe(
@@ -73,9 +73,9 @@ test('Can disable autoMeasure', async () => {
   try {
     const iopipeInstance = iopipe({
       token: 'test',
-      plugins: [Tracer({ autoMeasure: false })]
+      plugins: [tracePlugin({ autoMeasure: false })]
     });
-    const wrappedFn = iopipeInstance(async (event, context) => {
+    const wrappedFn = iopipeInstance((event, context) => {
       const { mark } = context.iopipe;
       mark.start('test');
       mark.end('test');
@@ -88,11 +88,11 @@ test('Can disable autoMeasure', async () => {
       .find(obj => obj.context.functionName === 'test-2')
       .get('report.report.performanceEntries')
       .value();
-    expect(performanceEntries.length).toBe(2);
+    expect(performanceEntries).toHaveLength(2);
     const measure = performanceEntries.find(
       item => item.entryType === 'measure'
     );
-    expect(measure).toBe(undefined);
+    expect(measure).toBeUndefined();
   } catch (err) {
     throw err;
   }

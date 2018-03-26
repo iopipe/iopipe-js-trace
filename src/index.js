@@ -1,7 +1,7 @@
 import Perf from 'performance-node';
 
+import pkg from '../package';
 import { addToReport } from './addToReport';
-import pkg from '../package.json';
 
 function getConfig(config = {}) {
   const { autoMeasure = true } = config;
@@ -17,13 +17,13 @@ function addTimelineMeasures(pluginInstance) {
   }
   const entries = timeline.getEntriesByType('mark');
   const names = entries
-    .filter(entry => (entry.name || '').match(/^(start|end)\:.+/))
+    .filter(entry => (entry.name || '').match(/^(start|end):.+/))
     .map(entry => entry.name);
   // loop through each mark and make sure there is a start and end
   // if so, measure
   names.forEach(name => {
-    if (name.match(/^(start)\:.+/)) {
-      const baseName = name.replace(/(start|end)\:(.+)/, '$2');
+    if (name.match(/^(start):.+/)) {
+      const baseName = name.replace(/(start|end):(.+)/, '$2');
       // make sure there is an end mark as well
       if (names.find(n => n === `end:${baseName}`)) {
         timeline.measure(
