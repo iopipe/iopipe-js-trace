@@ -4,3 +4,6 @@ export function addToReport(pluginInstance) {
   const { report } = invocationInstance.report;
   report.performanceEntries = entries;
 }
+
+// for testing purposes
+export const invocations = [];
