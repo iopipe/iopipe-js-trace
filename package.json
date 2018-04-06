@@ -9,6 +9,7 @@
     "lint": "iopipe-scripts lint",
     "prepublishOnly": "npm run build",
     "prepare": "npm run build",
+    "release": "iopipe-scripts release",
     "test": "iopipe-scripts test",
     "validate": "iopipe-scripts validate"
   },
