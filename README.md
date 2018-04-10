@@ -1,6 +1,7 @@
 # IOpipe Trace Plugin
 
 [![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
+[![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
 
 Create marks and measures for arbitrary units of time. Measure latency of database calls, third party requests, or code blocks and visualize them in [IOpipe](https://iopipe.com)!
 
@@ -10,6 +11,8 @@ Create marks and measures for arbitrary units of time. Measure latency of databa
 - [IOpipe](https://github.com/iopipe/iopipe-js) >= `1.x`
 
 ## Install
+
+__Note: This plugin is automatically included in the recommended package [@iopipe/iopipe](https://github.com/iopipe/iopipe-js)__
 
 With [yarn](https://yarnpkg.com) (recommended) in project directory:
 
@@ -22,7 +25,7 @@ With npm in project directory:
 Then include the plugin with IOpipe in your serverless function:
 
 ```js
-const iopipeLib = require('iopipe');
+const iopipeLib = require('@iopipe/iopipe');
 const tracePlugin = require('@iopipe/trace');
 
 const iopipe = iopipeLib({
@@ -32,13 +35,14 @@ const iopipe = iopipeLib({
 
 // wrap your lambda handler
 exports.handler = iopipe((event, context) => {
-  context.iopipe.mark.start('database');
+  const {mark} = context.iopipe;
+  mark.start('database');
   // after database call is finished
-  context.iopipe.mark.end('database');
+  mark.end('database');
 
-  context.iopipe.mark.start('analytics');
+  mark.start('analytics');
   // after analytics call is finished
-  context.iopipe.mark.end('analytics');
+  mark.end('analytics');
   context.succeed('Wow!');
 });
 ```
