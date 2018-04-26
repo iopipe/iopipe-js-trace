@@ -42,7 +42,11 @@
     "lodash": "^4.17.4"
   },
   "dependencies": {
-    "performance-node": "^0.2.0"
+    "flat": "^4.0.0",
+    "lodash.pickby": "^4.6.0",
+    "performance-node": "^0.2.0",
+    "shimmer": "^1.2.0",
+    "uuid": "^3.2.1"
   },
   "pre-commit": [
     "test"

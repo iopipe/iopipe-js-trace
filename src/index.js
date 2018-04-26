@@ -1,11 +1,27 @@
 import Perf from 'performance-node';
+import { flatten } from 'flat';
 
 import pkg from '../package';
 import { addToReport } from './addToReport';
+import shimmerHttp from './shimmerHttp';
+
+const METRIC_PREFIX = '@iopipe/trace';
+
+let autoHttpInitialized;
+
+const moduleAutoData = {
+  timeline: new Perf({ timestamp: true }),
+  // arbitrary data about each trace that will end up in custom metrics
+  data: {}
+};
 
 function getConfig(config = {}) {
-  const { autoMeasure = true } = config;
+  const {
+    autoMeasure = true,
+    autoHttp = Boolean(process.env.IOPIPE_TRACE_AUTO_HTTP)
+  } = config;
   return {
+    autoHttp,
     autoMeasure
   };
 }
@@ -37,10 +53,39 @@ function addTimelineMeasures(pluginInstance) {
   return true;
 }
 
+function metricsFromModuleAutoData(invocationInstance) {
+  Object.keys(moduleAutoData.data).forEach(id => {
+    const objFlat = flatten(moduleAutoData.data[id]);
+    Object.keys(objFlat).forEach(path => {
+      invocationInstance.metric(
+        `${METRIC_PREFIX}.${id}.${path}`,
+        objFlat[path]
+      );
+    });
+    invocationInstance.metric(`${METRIC_PREFIX}.${id}.type`, 'autoHttp');
+  });
+}
+
+function recordAutoHttpData(plugin) {
+  addTimelineMeasures(moduleAutoData);
+  metricsFromModuleAutoData(plugin.invocationInstance);
+  addToReport({
+    invocationInstance: plugin.invocationInstance,
+    timeline: moduleAutoData.timeline
+  });
+  moduleAutoData.timeline.clear();
+  moduleAutoData.data = {};
+}
+
 class TracePlugin {
   constructor(config = {}, invocationInstance) {
     this.invocationInstance = invocationInstance;
     this.config = getConfig(config);
+    // be careful not to shim more than once, or we get dupe data
+    if (this.config.autoHttp && !autoHttpInitialized) {
+      autoHttpInitialized = true;
+      shimmerHttp(moduleAutoData);
+    }
     this.metrics = [];
     this.timeline = new Perf({ timestamp: true });
     this.hooks = {
@@ -62,6 +107,9 @@ class TracePlugin {
   preReport() {
     if (this.config.autoMeasure) {
       addTimelineMeasures(this);
+    }
+    if (this.config.autoHttp) {
+      recordAutoHttpData(this);
     }
     addToReport(this);
   }
