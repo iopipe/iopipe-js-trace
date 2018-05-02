@@ -1,13 +1,30 @@
-// import originalHttp from 'http';
 import _ from 'lodash';
 import Perf from 'performance-node';
 import { wrap, unwrap } from './shimmerHttp';
 
+function iopipeComExpect(
+  res,
+  { statusCode = 301, href = '', timeline, data, headers = {} }
+) {
+  expect(res.statusCode).toBe(statusCode);
+
+  const dataValues = _.values(data);
+  expect(dataValues).toHaveLength(1);
+  const [obj] = dataValues;
+
+  expect(obj.href).toBe(href);
+  expect(obj.req.headers).toEqual(headers);
+  expect(obj.res.headers['content-type']).toBe('text/plain');
+  expect(obj.res.statusCode).toBe(statusCode);
+
+  const entries = timeline.getEntries();
+  expect(entries).toHaveLength(2);
+  expect(entries[0].name).toMatch(/^start:(.){36}$/);
+  expect(entries[1].name).toMatch(/^end:(.){36}$/);
+}
+
 beforeEach(() => {
   unwrap();
-  // delete require.cache[require.resolve('http')];
-  // delete require.cache[require.resolve('https')];
-  // delete require.cache[require.resolve('./shimmerHttp')];
 });
 
 test('Http works as normal if wrap is not called', done => {
@@ -40,25 +57,9 @@ test('Wrap works with http.get(string)', done => {
 
   const http = require('http');
   const href = 'http://iopipe.com?http.get(string)';
-  const statusCode = 301;
 
   http.get(href, res => {
-    expect(res.statusCode).toBe(statusCode);
-
-    const dataValues = _.values(data);
-    expect(dataValues).toHaveLength(1);
-    const [obj] = dataValues;
-
-    expect(obj.href).toBe(href);
-    expect(obj.req.headers).toEqual({});
-    expect(obj.res.headers['content-type']).toBe('text/plain');
-    expect(obj.res.statusCode).toBe(statusCode);
-
-    const entries = timeline.getEntries();
-    expect(entries).toHaveLength(2);
-    expect(entries[0].name).toMatch(/^start:(.){36}$/);
-    expect(entries[1].name).toMatch(/^end:(.){36}$/);
-
+    iopipeComExpect(res, { data, timeline, href });
     done();
   });
 });
@@ -70,32 +71,59 @@ test('Wrap works with http.get(opts)', done => {
 
   const http = require('http');
   const href = 'http://iopipe.com?http.get(opts)';
-  const statusCode = 301;
-
+  const headers = { 'x-iopipe-test': 'foo, bar' };
   http.get(
     {
       protocol: 'http:',
       host: 'iopipe.com',
       search: '?http.get(opts)',
-      headers: { 'x-iopipe-test': 'foo, bar' }
+      headers
     },
     res => {
-      expect(res.statusCode).toBe(statusCode);
-
-      const dataValues = _.values(data);
-      expect(dataValues).toHaveLength(1);
-      const [obj] = dataValues;
-
-      expect(obj.href).toBe(href);
-      expect(obj.req.headers).toEqual({ 'x-iopipe-test': 'foo, bar' });
-      expect(obj.res.headers['content-type']).toBe('text/plain');
-      expect(obj.res.statusCode).toBe(statusCode);
-
-      expect(timeline.getEntries()).toHaveLength(2);
-
+      iopipeComExpect(res, { data, timeline, href, headers });
       done();
     }
   );
+});
+
+test('Wrap works with http.request(url)', done => {
+  const timeline = new Perf({ timestamp: true });
+  const data = {};
+  wrap({ timeline, data });
+
+  const http = require('http');
+  const href = 'http://iopipe.com?http.request(url)';
+
+  http
+    .request(href, res => {
+      iopipeComExpect(res, { data, timeline, href });
+      done();
+    })
+    .end();
+});
+
+test('Wrap works with http.request(opts)', done => {
+  const timeline = new Perf({ timestamp: true });
+  const data = {};
+  wrap({ timeline, data });
+
+  const http = require('http');
+  const href = 'http://iopipe.com?http.request(opts)';
+  const headers = { 'x-iopipe-test': 'foo, bar' };
+  http
+    .request(
+      {
+        protocol: 'http:',
+        host: 'iopipe.com',
+        search: '?http.request(opts)',
+        headers
+      },
+      res => {
+        iopipeComExpect(res, { data, timeline, href, headers });
+        done();
+      }
+    )
+    .end();
 });
 
 test('Wrap works with https.get(string)', done => {
@@ -105,25 +133,9 @@ test('Wrap works with https.get(string)', done => {
 
   const https = require('https');
   const href = 'https://iopipe.com?https.get(string)';
-  const statusCode = 301;
 
   https.get(href, res => {
-    expect(res.statusCode).toBe(statusCode);
-
-    const dataValues = _.values(data);
-    expect(dataValues).toHaveLength(1);
-    const [obj] = dataValues;
-
-    expect(obj.href).toBe(href);
-    expect(obj.req.headers).toEqual({});
-    expect(obj.res.headers['content-type']).toBe('text/plain');
-    expect(obj.res.statusCode).toBe(statusCode);
-
-    const entries = timeline.getEntries();
-    expect(entries).toHaveLength(2);
-    expect(entries[0].name).toMatch(/^start:(.){36}$/);
-    expect(entries[1].name).toMatch(/^end:(.){36}$/);
-
+    iopipeComExpect(res, { data, timeline, href });
     done();
   });
 });
@@ -135,26 +147,10 @@ test('Wrap works with https.request(url)', done => {
 
   const https = require('https');
   const href = 'https://iopipe.com?https.request(url)';
-  const statusCode = 301;
 
   https
-    .request(href, (res, err) => {
-      expect(res.statusCode).toBe(statusCode);
-
-      const dataValues = _.values(data);
-      expect(dataValues).toHaveLength(1);
-      const [obj] = dataValues;
-
-      expect(obj.href).toBe(href);
-      expect(obj.req.headers).toEqual({});
-      expect(obj.res.headers['content-type']).toBe('text/plain');
-      expect(obj.res.statusCode).toBe(statusCode);
-
-      const entries = timeline.getEntries();
-      expect(entries).toHaveLength(2);
-      expect(entries[0].name).toMatch(/^start:(.){36}$/);
-      expect(entries[1].name).toMatch(/^end:(.){36}$/);
-
+    .request(href, res => {
+      iopipeComExpect(res, { data, timeline, href });
       done();
     })
     .end();
@@ -166,7 +162,7 @@ test('Wrap works with https.request(opts)', done => {
   wrap({ timeline, data });
 
   const https = require('https');
-  const statusCode = 301;
+  const href = 'https://iopipe.com?https.request(opts)';
 
   https
     .request(
@@ -175,25 +171,33 @@ test('Wrap works with https.request(opts)', done => {
         protocol: 'https:',
         search: '?https.request(opts)'
       },
-      (res, err) => {
-        expect(res.statusCode).toBe(statusCode);
-
-        const dataValues = _.values(data);
-        expect(dataValues).toHaveLength(1);
-        const [obj] = dataValues;
-
-        expect(obj.href).toBe('https://iopipe.com?https.request(opts)');
-        expect(obj.req.headers).toEqual({});
-        expect(obj.res.headers['content-type']).toBe('text/plain');
-        expect(obj.res.statusCode).toBe(statusCode);
-
-        const entries = timeline.getEntries();
-        expect(entries).toHaveLength(2);
-        expect(entries[0].name).toMatch(/^start:(.){36}$/);
-        expect(entries[1].name).toMatch(/^end:(.){36}$/);
-
+      res => {
+        iopipeComExpect(res, { data, timeline, href });
         done();
       }
     )
     .end();
+});
+
+test('Wrap works with async got(string)', async () => {
+  const timeline = new Perf({ timestamp: true });
+  const data = {};
+  wrap({ timeline, data });
+
+  const got = require('got');
+  const href = 'http://iopipe.com?got(string)';
+
+  const res = await got(href);
+  expect(res.statusCode).toBe(200);
+  expect(res.headers).toHaveProperty('content-type');
+  expect(res.headers).toHaveProperty('server');
+  const entries = timeline.getEntries();
+  expect(entries).toHaveLength(4);
+  // ensure 2 requests in trace data
+  const ids = _.chain(entries)
+    .map('name')
+    .map(str => str.replace(/(start|end)\:/, ''))
+    .uniq()
+    .value();
+  expect(ids).toHaveLength(2);
 });
