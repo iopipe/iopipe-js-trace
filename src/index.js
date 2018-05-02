@@ -3,7 +3,7 @@ import { flatten } from 'flat';
 
 import pkg from '../package';
 import { addToReport } from './addToReport';
-import shimmerHttp from './shimmerHttp';
+import { wrap as shimmerHttp } from './shimmerHttp';
 
 const METRIC_PREFIX = '@iopipe/trace';
 

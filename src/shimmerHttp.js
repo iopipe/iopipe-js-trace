@@ -1,8 +1,13 @@
 import http from 'http';
+import https from 'https';
+import url from 'url';
+import { debuglog } from 'util';
 import shimmer from 'shimmer';
 import Perf from 'performance-node';
 import uuid from 'uuid/v4';
 import pickBy from 'lodash.pickby';
+
+const debug = debuglog('@iopipe/trace');
 
 /*eslint-disable babel/no-invalid-this*/
 
@@ -16,27 +21,48 @@ const requestKeysForMetrics = [
   'protocol'
 ];
 
-export default function autoHttp({
-  timeline = new Perf(),
-  data: moduleData = {}
-}) {
-  shimmer.wrap(http, 'get', () => {
-    // we have to replace http.get since it references request through
-    // a closure (so we can't replace the value it uses..)
-    return (options, cb) => {
-      const req = http.request(options, cb);
-      req.end();
-      return req;
-    };
-  });
+function unwrap() {
+  if (http.get.__wrapped) {
+    shimmer.unwrap(http, 'get');
+  }
+  if (http.request.__wrapped) {
+    shimmer.unwrap(http, 'request');
+  }
+  if (https.get.__wrapped) {
+    shimmer.unwrap(https, 'get');
+  }
+  if (https.request.__wrapped) {
+    shimmer.unwrap(https, 'request');
+  }
+}
 
-  shimmer.wrap(http, 'request', function wrapper(original) {
-    return function ok(rawOptions, originalCallback) {
+function wrapHttpGet(mod) {
+  // we have to replace http.get since it references request through
+  // a closure (so we can't replace the value it uses..)
+  return (options, cb) => {
+    const req = mod.request(options, cb);
+    req.end();
+    return req;
+  };
+}
+
+function wrapHttpRequest({ timeline, data: moduleData = {} }) {
+  return function wrapper(original) {
+    return function execute(rawOptions, originalCallback) {
+      // bail if we have already started tracking this request
+      // this can happen by calling https.request(opts)
+      // which ends up calling http.request(opts)
+      if (originalCallback && originalCallback.__iopipeTraceId) {
+        return original.apply(this, [rawOptions, originalCallback]);
+      }
       // options might be a string (simple href), coerce to object
-      const options =
+      const reqKwargs =
         typeof rawOptions === 'string'
-          ? { href: rawOptions }
+          ? { href: rawOptions, headers: {} }
           : rawOptions || {};
+
+      // ensure href key
+      reqKwargs.href = reqKwargs.href || url.format(reqKwargs);
 
       // id of this particular trace
       const id = uuid();
@@ -48,7 +74,7 @@ export default function autoHttp({
       Object.assign(
         moduleData[id],
         pickBy(
-          options,
+          reqKwargs,
           (v, k) =>
             typeof v !== 'undefined' && requestKeysForMetrics.indexOf(k) > -1
         )
@@ -57,11 +83,11 @@ export default function autoHttp({
       const reqHeaders = {};
       // sometimes request headers come in as an array
       // make them strings to conform to our schema better
-      Object.keys(options.headers).forEach(k => {
+      Object.keys(reqKwargs.headers || {}).forEach(k => {
         reqHeaders[k] =
-          typeof options.headers[k] === 'object' && options.headers[k].join
-            ? options.headers[k].join(' ')
-            : options.headers[k];
+          typeof reqKwargs.headers[k] === 'object' && reqKwargs.headers[k].join
+            ? reqKwargs.headers[k].join(' ')
+            : reqKwargs.headers[k];
       });
       moduleData[id].req = {
         headers: reqHeaders
@@ -80,15 +106,37 @@ export default function autoHttp({
         return true;
       }
 
+      extendedCallback.__iopipeTraceId = id;
+
       // execute the original function with callback
-      if (originalCallback) {
-        return original.apply(this, [options, extendedCallback]);
+      if (typeof originalCallback === 'function') {
+        return original.apply(this, [rawOptions, extendedCallback]);
       } else {
         // the user didn't specify a callback, add it as a "response" handler ourselves
-        return original.apply(this, [options]).on('response', extendedCallback);
+        return original
+          .apply(this, [rawOptions])
+          .on('response', extendedCallback);
       }
     };
-  });
-
-  return http;
+  };
 }
+
+function wrap({ timeline, data = {} } = {}) {
+  // const http = require('http');
+  if (!(timeline instanceof Perf)) {
+    debug(
+      'Timeline passed to shimmerHttp.wrap not an instance of performance-node. Skipping.'
+    );
+    return false;
+  }
+
+  shimmer.wrap(http, 'get', () => wrapHttpGet(http));
+  shimmer.wrap(http, 'request', wrapHttpRequest({ timeline, data }));
+
+  shimmer.wrap(https, 'get', () => wrapHttpGet(https));
+  shimmer.wrap(https, 'request', wrapHttpRequest({ timeline, data }));
+
+  return true;
+}
+
+export { unwrap, wrap };
