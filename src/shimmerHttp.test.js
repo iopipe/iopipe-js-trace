@@ -193,10 +193,11 @@ test('Wrap works with async got(string)', async () => {
   expect(res.headers).toHaveProperty('server');
   const entries = timeline.getEntries();
   expect(entries).toHaveLength(4);
+  // got follows redirects automatically
   // ensure 2 requests in trace data
   const ids = _.chain(entries)
     .map('name')
-    .map(str => str.replace(/(start|end)\:/, ''))
+    .map(str => str.replace(/(start|end):/, ''))
     .uniq()
     .value();
   expect(ids).toHaveLength(2);

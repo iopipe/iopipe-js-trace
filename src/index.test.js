@@ -102,3 +102,29 @@ test('Can disable autoMeasure', async () => {
     throw err;
   }
 });
+
+test('Can use autoHttp', async () => {
+  try {
+    const iopipeInstance = iopipe({
+      token: 'test',
+      plugins: [tracePlugin({ autoHttp: { enabled: true } })]
+    });
+    const wrappedFn = iopipeInstance(async (event, context) => {
+      const got = require('got');
+      const res = await got('https://www.iopipe.com');
+      context.succeed(res.statusCode);
+    });
+    const context = mockContext({ functionName: 'autoHttp' });
+    wrappedFn({}, context);
+    const result = await context.Promise;
+    expect(result).toBe(200);
+    const performanceEntries = _.chain(invocations)
+      .find(obj => obj.context.functionName === 'autoHttp')
+      .get('report.report.performanceEntries')
+      .value();
+    // performanceEntires should have start, end, and measure entries
+    expect(performanceEntries).toHaveLength(3);
+  } catch (err) {
+    throw err;
+  }
+});

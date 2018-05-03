@@ -9,25 +9,23 @@ const METRIC_PREFIX = '@iopipe/trace';
 
 let autoHttpInitialized;
 
-const moduleAutoData = {
-  timeline: new Perf({ timestamp: true }),
-  // arbitrary data about each trace that will end up in custom metrics
-  data: {}
-};
-
 function getConfig(config = {}) {
-  const {
-    autoMeasure = true,
-    autoHttp = Boolean(process.env.IOPIPE_TRACE_AUTO_HTTP)
-  } = config;
+  const { autoMeasure = true, autoHttp = {} } = config;
   return {
-    autoHttp,
+    autoHttp: {
+      enabled:
+        typeof autoHttp.enabled === 'boolean'
+          ? autoHttp.enabled
+          : Boolean(process.env.IOPIPE_TRACE_AUTO_HTTP),
+      headersBlacklist: autoHttp.headersBlacklist || [],
+      headersWhitelist: autoHttp.headersWhitelist || []
+    },
     autoMeasure
   };
 }
 
-function addTimelineMeasures(pluginInstance) {
-  const { timeline } = pluginInstance;
+function addTimelineMeasures(pluginInstance, timelineArg) {
+  const timeline = timelineArg || pluginInstance.timeline;
   if (!(timeline instanceof Perf)) {
     return false;
   }
@@ -53,45 +51,48 @@ function addTimelineMeasures(pluginInstance) {
   return true;
 }
 
-function metricsFromModuleAutoData(invocationInstance) {
-  Object.keys(moduleAutoData.data).forEach(id => {
-    const objFlat = flatten(moduleAutoData.data[id]);
+function metricsFromModuleAutoData(plugin) {
+  const { iopipe = {} } = plugin.invocationInstance.context;
+  const recordMetric = iopipe.metric || iopipe.log;
+  Object.keys(plugin.autoData.data).forEach(id => {
+    const objFlat = flatten(plugin.autoData.data[id]);
     Object.keys(objFlat).forEach(path => {
-      invocationInstance.metric(
-        `${METRIC_PREFIX}.${id}.${path}`,
-        objFlat[path]
-      );
+      recordMetric(`${METRIC_PREFIX}.${id}.${path}`, objFlat[path]);
     });
-    invocationInstance.metric(`${METRIC_PREFIX}.${id}.type`, 'autoHttp');
+    recordMetric(`${METRIC_PREFIX}.${id}.type`, 'autoHttp');
   });
 }
 
 function recordAutoHttpData(plugin) {
-  addTimelineMeasures(moduleAutoData);
-  metricsFromModuleAutoData(plugin.invocationInstance);
-  addToReport({
-    invocationInstance: plugin.invocationInstance,
-    timeline: moduleAutoData.timeline
-  });
-  moduleAutoData.timeline.clear();
-  moduleAutoData.data = {};
+  addTimelineMeasures(plugin, plugin.autoData.timeline);
+  metricsFromModuleAutoData(plugin);
+  addToReport(plugin, plugin.autoData.timeline);
+  plugin.autoData.timeline.clear();
+  plugin.autoData.data = {};
 }
 
 class TracePlugin {
   constructor(config = {}, invocationInstance) {
     this.invocationInstance = invocationInstance;
     this.config = getConfig(config);
-    // be careful not to shim more than once, or we get dupe data
-    if (this.config.autoHttp && !autoHttpInitialized) {
-      autoHttpInitialized = true;
-      shimmerHttp(moduleAutoData);
-    }
     this.metrics = [];
     this.timeline = new Perf({ timestamp: true });
     this.hooks = {
       'post:setup': this.postSetup.bind(this),
       'pre:report': this.preReport.bind(this)
     };
+    if (this.config.autoHttp.enabled) {
+      this.autoData = {
+        timeline: new Perf({ timestamp: true }),
+        // arbitrary data about each trace that will end up in custom metrics
+        data: {}
+      };
+      if (!autoHttpInitialized) {
+        // be careful not to shim more than once, or we get dupe data
+        autoHttpInitialized = true;
+        shimmerHttp(this.autoData);
+      }
+    }
     return this;
   }
   get meta() {
@@ -108,7 +109,7 @@ class TracePlugin {
     if (this.config.autoMeasure) {
       addTimelineMeasures(this);
     }
-    if (this.config.autoHttp) {
+    if (this.config.autoHttp.enabled) {
       recordAutoHttpData(this);
     }
     addToReport(this);

@@ -6,6 +6,7 @@ import shimmer from 'shimmer';
 import Perf from 'performance-node';
 import uuid from 'uuid/v4';
 import pickBy from 'lodash.pickby';
+import isArray from 'isarray';
 
 const debug = debuglog('@iopipe/trace');
 
@@ -37,8 +38,6 @@ function unwrap() {
 }
 
 function wrapHttpGet(mod) {
-  // we have to replace http.get since it references request through
-  // a closure (so we can't replace the value it uses..)
   return (options, cb) => {
     const req = mod.request(options, cb);
     req.end();
@@ -69,7 +68,7 @@ function wrapHttpRequest({ timeline, data: moduleData = {} }) {
       // start the trace
       timeline.mark(`start:${id}`);
 
-      // add request data that will be sent to iopipe later
+      // add request data that will be sent to IOpipe later
       moduleData[id] = {};
       Object.assign(
         moduleData[id],
@@ -84,10 +83,9 @@ function wrapHttpRequest({ timeline, data: moduleData = {} }) {
       // sometimes request headers come in as an array
       // make them strings to conform to our schema better
       Object.keys(reqKwargs.headers || {}).forEach(k => {
-        reqHeaders[k] =
-          typeof reqKwargs.headers[k] === 'object' && reqKwargs.headers[k].join
-            ? reqKwargs.headers[k].join(' ')
-            : reqKwargs.headers[k];
+        reqHeaders[k] = isArray(reqKwargs.headers[k])
+          ? reqKwargs.headers[k].join(' ')
+          : reqKwargs.headers[k];
       });
       moduleData[id].req = {
         headers: reqHeaders
@@ -106,6 +104,8 @@ function wrapHttpRequest({ timeline, data: moduleData = {} }) {
         return true;
       }
 
+      // add traceId to callback so we do not create duplicate data from inner http calls
+      // this can happen for the https module which calls the http module internally
       extendedCallback.__iopipeTraceId = id;
 
       // execute the original function with callback
@@ -122,7 +122,6 @@ function wrapHttpRequest({ timeline, data: moduleData = {} }) {
 }
 
 function wrap({ timeline, data = {} } = {}) {
-  // const http = require('http');
   if (!(timeline instanceof Perf)) {
     debug(
       'Timeline passed to shimmerHttp.wrap not an instance of performance-node. Skipping.'
