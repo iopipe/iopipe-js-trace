@@ -84,7 +84,7 @@ const iopipe = iopipeLib({
     autoHttp: {
       enabled: true,
       filter: (obj) => {
-        // obj = {'res.url':'http://iopipe.com', res.method': 'GET'}
+        // obj = {'res.url':'http://iopipe.com', 'res.method': 'GET'}
         // return the object with filtered keys
         // or return false to exclude the trace data completely
         return obj['res.url'].match(/restricted\.com/) ? false : obj;
