@@ -64,6 +64,36 @@ context.iopipe.measure('custom', 'init', 'db');
 
 ## Config
 
+#### `autoHttp` (object: optional = {})
+
+Automatically create traces and matching metadata for each http/s call made within your function invocation.
+
+#### `autoHttp.enabled` (bool: optional = true)
+
+HTTP/S auto-tracing is enabled by default.
+
+#### `autoHttp.filter` (func: optional)
+
+Filter what data is recorded for each http request that occurs within the invocation. The function will be passed an argument that is an object containing all of the data that could potentially be recorded with IOpipe. Use this object to determine:
+- A. What information to record / not to record (ie filter out certain headers)
+- B. If the http call should be completely excluded from trace data (ie filter out sensitive calls altogether)
+
+```js
+const iopipe = iopipeLib({
+  plugins: [tracePlugin({
+    autoHttp: {
+      enabled: true,
+      filter: (obj) => {
+        // obj = {'res.url':'http://iopipe.com', res.method': 'GET'}
+        // return the object with filtered keys
+        // or return false to exclude the trace data completely
+        return obj['res.url'].match(/restricted\.com/) ? false : obj;
+      }
+    }
+  })]
+});
+```
+
 #### `autoMeasure` (bool: optional = true)
 
 By default, the plugin will create auto-measurements for marks with matching `mark.start` and `mark.end`. These measurements will be displayed in the [IOpipe Dashboard](https://dashboard.iopipe.com). If you'd like to turn this off, set `autoMeasure: false`.
