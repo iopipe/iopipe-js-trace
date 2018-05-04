@@ -7,8 +7,6 @@ import { wrap as shimmerHttp } from './shimmerHttp';
 
 const METRIC_PREFIX = '@iopipe/trace';
 
-let autoHttpInitialized;
-
 function getConfig(config = {}) {
   const { autoMeasure = true, autoHttp = {} } = config;
   return {
@@ -17,8 +15,7 @@ function getConfig(config = {}) {
         typeof autoHttp.enabled === 'boolean'
           ? autoHttp.enabled
           : Boolean(process.env.IOPIPE_TRACE_AUTO_HTTP),
-      headersBlacklist: autoHttp.headersBlacklist || [],
-      headersWhitelist: autoHttp.headersWhitelist || []
+      filter: autoHttp.filter
     },
     autoMeasure
   };
@@ -85,13 +82,10 @@ class TracePlugin {
       this.autoData = {
         timeline: new Perf({ timestamp: true }),
         // arbitrary data about each trace that will end up in custom metrics
-        data: {}
+        data: {},
+        config: this.config.autoHttp
       };
-      if (!autoHttpInitialized) {
-        // be careful not to shim more than once, or we get dupe data
-        autoHttpInitialized = true;
-        shimmerHttp(this.autoData);
-      }
+      shimmerHttp(this.autoData);
     }
     return this;
   }

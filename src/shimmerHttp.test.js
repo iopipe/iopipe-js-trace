@@ -1,21 +1,24 @@
 import _ from 'lodash';
 import Perf from 'performance-node';
+import { flatten } from 'flat';
+
 import { wrap, unwrap } from './shimmerHttp';
 
 function iopipeComExpect(
   res,
-  { statusCode = 301, href = '', timeline, data, headers = {} }
+  { statusCode = 301, href = '', timeline, data, headers: reqHeaders = {} }
 ) {
   expect(res.statusCode).toBe(statusCode);
 
   const dataValues = _.values(data);
   expect(dataValues).toHaveLength(1);
   const [obj] = dataValues;
-
-  expect(obj.href).toBe(href);
-  expect(obj.req.headers).toEqual(headers);
-  expect(obj.res.headers['content-type']).toBe('text/plain');
-  expect(obj.res.statusCode).toBe(statusCode);
+  expect(obj['req.url']).toBe(href);
+  Object.keys(reqHeaders).forEach(header => {
+    expect(obj[`req.${header}`]).toBe(reqHeaders[header]);
+  });
+  expect(obj['res.headers.content-type']).toBe('text/plain');
+  expect(obj['res.statusCode']).toBe(statusCode);
 
   const entries = timeline.getEntries();
   expect(entries).toHaveLength(2);
@@ -80,7 +83,7 @@ test('Wrap works with http.get(opts)', done => {
       headers
     },
     res => {
-      iopipeComExpect(res, { data, timeline, href, headers });
+      iopipeComExpect(res, { data, timeline, href });
       done();
     }
   );
@@ -119,7 +122,7 @@ test('Wrap works with http.request(opts)', done => {
         headers
       },
       res => {
-        iopipeComExpect(res, { data, timeline, href, headers });
+        iopipeComExpect(res, { data, timeline, href });
         done();
       }
     )
@@ -201,4 +204,38 @@ test('Wrap works with async got(string)', async () => {
     .uniq()
     .value();
   expect(ids).toHaveLength(2);
+});
+
+test('Wrap works with async got(string) and filter', async () => {
+  const timeline = new Perf({ timestamp: true });
+  const data = {};
+  wrap({
+    timeline,
+    data,
+    config: {
+      filter: obj => {
+        // test excluding traces by arbitrary user code
+        if (obj['req.query'] === '?exclude') {
+          return false;
+        }
+        // only record req.url otherwise
+        return _.pick(obj, ['req.url']);
+      }
+    }
+  });
+
+  const got = require('got');
+
+  await Promise.all([
+    got('http://iopipe.com?got(string)'),
+    got('http://iopipe.com?exclude')
+  ]);
+  const entries = timeline.getEntries();
+  // only 4 entries should be here, not 8 (two full got calls)
+  expect(entries).toHaveLength(4);
+  // only 2 data values should be present, as we said we only want to capture the url for each http call (2 values due to the redirect follow)
+  expect(_.values(flatten(data))).toEqual([
+    'http://iopipe.com/?got(string)',
+    'https://www.iopipe.com/?got(string)'
+  ]);
 });

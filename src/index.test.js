@@ -5,10 +5,15 @@ import mockContext from 'aws-lambda-mock-context';
 import Perf from 'performance-node';
 import pkg from '../package';
 import { invocations } from './addToReport';
+import { unwrap } from './shimmerHttp';
 
 const tracePlugin = require('.');
 
 jest.mock('./addToReport');
+
+beforeEach(() => {
+  unwrap();
+});
 
 test('Can instantiate the plugin with no options', () => {
   const plugin = tracePlugin();
@@ -103,7 +108,7 @@ test('Can disable autoMeasure', async () => {
   }
 });
 
-test('Can use autoHttp', async () => {
+test('autoHttp works with got(url)', async () => {
   try {
     const iopipeInstance = iopipe({
       token: 'test',
@@ -111,19 +116,98 @@ test('Can use autoHttp', async () => {
     });
     const wrappedFn = iopipeInstance(async (event, context) => {
       const got = require('got');
-      const res = await got('https://www.iopipe.com');
+      const res = await got('https://www.iopipe.com:443?test=foo#wowhash');
       context.succeed(res.statusCode);
     });
-    const context = mockContext({ functionName: 'autoHttp' });
+    const context = mockContext({ functionName: 'got(url)' });
     wrappedFn({}, context);
     const result = await context.Promise;
     expect(result).toBe(200);
-    const performanceEntries = _.chain(invocations)
-      .find(obj => obj.context.functionName === 'autoHttp')
-      .get('report.report.performanceEntries')
+    const report = _.chain(invocations)
+      .find(obj => obj.context.functionName === 'got(url)')
+      .get('report.report')
       .value();
+    const { performanceEntries, custom_metrics: metrics } = report;
     // performanceEntires should have start, end, and measure entries
     expect(performanceEntries).toHaveLength(3);
+    const expectedMetricKeys = [
+      'req.method',
+      'req.url',
+      'res.headers.content-length',
+      'res.statusCode',
+      'type'
+    ];
+    const expectedMetrics = _.chain(metrics)
+      .map('name')
+      .map(str =>
+        str
+          .split('.')
+          .slice(2)
+          .join('.')
+      )
+      .value();
+    expect(_.intersection(expectedMetrics, expectedMetricKeys)).toHaveLength(
+      expectedMetricKeys.length
+    );
+  } catch (err) {
+    throw err;
+  }
+});
+
+test('autoHttp works with got(url) and options', async () => {
+  try {
+    const iopipeInstance = iopipe({
+      token: 'test',
+      plugins: [
+        tracePlugin({
+          autoHttp: {
+            enabled: true,
+            filter: obj => {
+              // test excluding traces by arbitrary user code
+              return obj['req.query'] === '?exclude=true' ? false : obj;
+            }
+          }
+        })
+      ]
+    });
+    const wrappedFn = iopipeInstance(async (event, context) => {
+      const got = require('got');
+      const [res1] = await Promise.all([
+        got('https://www.iopipe.com:443?test=foo#wowhash'),
+        got('https://www.iopipe.com:443?exclude=true')
+      ]);
+      context.succeed(res1.statusCode);
+    });
+    const context = mockContext({ functionName: 'got(url)+options' });
+    wrappedFn({}, context);
+    const result = await context.Promise;
+    expect(result).toBe(200);
+    const report = _.chain(invocations)
+      .find(obj => obj.context.functionName === 'got(url)+options')
+      .get('report.report')
+      .value();
+    const { performanceEntries, custom_metrics: metrics } = report;
+    // performanceEntires should have start, end, and measure entries
+    expect(performanceEntries).toHaveLength(3);
+    const expectedMetricKeys = [
+      'req.method',
+      'req.url',
+      'res.headers.content-length',
+      'res.statusCode',
+      'type'
+    ];
+    const expectedMetrics = _.chain(metrics)
+      .map('name')
+      .map(str =>
+        str
+          .split('.')
+          .slice(2)
+          .join('.')
+      )
+      .value();
+    expect(_.intersection(expectedMetrics, expectedMetricKeys)).toHaveLength(
+      expectedMetricKeys.length
+    );
   } catch (err) {
     throw err;
   }
