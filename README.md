@@ -74,23 +74,36 @@ HTTP/S auto-tracing is enabled by default.
 
 #### `autoHttp.filter` (func: optional)
 
-Filter what data is recorded for each http request that occurs within the invocation. The function will be passed an argument that is an object containing all of the data that could potentially be recorded with IOpipe. Use this object to determine:
+Filter what data is recorded for each http request that occurs within the invocation. The function will be passed two arguments. The first is an object containing "safe" data that is typically not sensitive in nature. The second argument is a more complete object with the same shape that may include sensitive data. You can use these objects to determine:
 - A. What information to record / not to record (ie filter out certain headers)
 - B. If the http call should be completely excluded from trace data (ie filter out sensitive calls altogether)
 
 ```js
 const iopipe = iopipeLib({
-  plugins: [tracePlugin({
-    autoHttp: {
-      enabled: true,
-      filter: (obj) => {
-        // obj = {'res.url':'http://iopipe.com', 'res.method': 'GET'}
-        // return the object with filtered keys
-        // or return false to exclude the trace data completely
-        return obj['res.url'].match(/restricted\.com/) ? false : obj;
+  plugins: [
+    tracePlugin({
+      autoHttp: {
+        enabled: true,
+        filter: (safeData, allData) => {
+          // obj = {'res.url':'http://iopipe.com', 'res.method': 'GET'}
+          // return the object with filtered keys
+          // or return false to exclude the trace data completely
+          const url = safeData['res.url'];
+          if (url.match(/restricted/)) {
+            // if you don't want any traces on this restricted URI return false
+            return false;
+          } else if (url.match(/cat-castle/)) {
+            // if you need to keep track of a sensitive header
+            return Object.assign(safeData, {
+              'req.headers.cookie': allData['req.headers.cookie']
+            });
+          }
+          // if you want to record the default data after some logic checks
+          return safeData;
+        }
       }
-    }
-  })]
+    })
+  ]
 });
 ```
 

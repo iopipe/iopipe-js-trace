@@ -7,6 +7,17 @@ import { wrap as shimmerHttp } from './shimmerHttp';
 
 const METRIC_PREFIX = '@iopipe/trace';
 
+function getBooleanFromEnv(key = '') {
+  const isFalsey =
+    ['false', 'f', '0'].indexOf(
+      (process.env[key] || '').toString().toLowerCase()
+    ) > -1;
+  if (isFalsey) {
+    return false;
+  }
+  return Boolean(process.env[key]);
+}
+
 function getConfig(config = {}) {
   const { autoMeasure = true, autoHttp = {} } = config;
   return {
@@ -14,7 +25,7 @@ function getConfig(config = {}) {
       enabled:
         typeof autoHttp.enabled === 'boolean'
           ? autoHttp.enabled
-          : Boolean(process.env.IOPIPE_TRACE_AUTO_HTTP),
+          : getBooleanFromEnv(process.env.IOPIPE_TRACE_AUTO_HTTP_ENABLED),
       filter: autoHttp.filter
     },
     autoMeasure
@@ -48,7 +59,7 @@ function addTimelineMeasures(pluginInstance, timelineArg) {
   return true;
 }
 
-function metricsFromModuleAutoData(plugin) {
+function metricsFromAutoHttpData(plugin) {
   const { iopipe = {} } = plugin.invocationInstance.context;
   const recordMetric = iopipe.metric || iopipe.log;
   Object.keys(plugin.autoHttpData.data).forEach(id => {
@@ -62,7 +73,7 @@ function metricsFromModuleAutoData(plugin) {
 
 function recordAutoHttpData(plugin) {
   addTimelineMeasures(plugin, plugin.autoHttpData.timeline);
-  metricsFromModuleAutoData(plugin);
+  metricsFromAutoHttpData(plugin);
   addToReport(plugin, plugin.autoHttpData.timeline);
   plugin.autoHttpData.timeline.clear();
   plugin.autoHttpData.data = {};

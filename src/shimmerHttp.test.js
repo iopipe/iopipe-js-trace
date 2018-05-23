@@ -212,11 +212,15 @@ test('Wrap works with async got(string) and filter', async () => {
     timeline,
     data,
     config: {
-      filter: obj => {
+      filter: (obj, complete) => {
         // test excluding traces by arbitrary user code
         if (obj['request.query'] === '?exclude') {
           return false;
         }
+        // first arg should be the "whitelisted version" with no sensitive data
+        expect(obj['request.headers.cookie']).toBeUndefined();
+        // second arg should be a more "complete" object
+        expect(complete['request.headers.cookie']).toBe('my-great-cookie');
         // only record request.url otherwise
         return _.pick(obj, ['request.url']);
       }
@@ -226,7 +230,11 @@ test('Wrap works with async got(string) and filter', async () => {
   const got = require('got');
 
   await Promise.all([
-    got('http://iopipe.com?got(string)'),
+    got('http://iopipe.com?got(string)', {
+      headers: {
+        cookie: 'my-great-cookie'
+      }
+    }),
     got('http://iopipe.com?exclude')
   ]);
   const entries = timeline.getEntries();

@@ -14,20 +14,14 @@ const debug = debuglog('@iopipe/trace');
 /*eslint-disable babel/no-invalid-this*/
 
 function unwrap() {
-  if (http.get.__wrapped) {
-    shimmer.unwrap(http, 'get');
-  }
-  if (http.request.__wrapped) {
-    shimmer.unwrap(http, 'request');
-  }
-  if (https.get.__wrapped) {
-    shimmer.unwrap(https, 'get');
-  }
-  if (https.request.__wrapped) {
-    shimmer.unwrap(https, 'request');
-  }
-  delete http.__iopipeShimmer;
-  delete https.__iopipeShimmer;
+  [http, https].forEach(mod => {
+    ['get', 'request'].forEach(method => {
+      if (mod[method].__wrapped) {
+        shimmer.unwrap(mod, method);
+      }
+    });
+    delete mod.__iopipeShimmer;
+  });
 }
 
 function wrapHttpGet(mod) {
@@ -38,18 +32,22 @@ function wrapHttpGet(mod) {
   };
 }
 
-// these are keys that are node specific and come from the actual js request object
+// these are keys that are mostly node specific and come from the actual js request object
 const unnecessaryReqKeys = [
   'agent',
   'automaticFailover',
   'cache',
   'decompress',
   'followRedirect',
+  'host',
+  'href',
   'retries',
   'slashes',
+  'search',
   'strictTtl',
   'throwHttpErrors',
-  'useElectronNet'
+  'useElectronNet',
+  'user-agent'
 ];
 
 function excludeUnnecessaryReqKeys(obj) {
@@ -67,11 +65,6 @@ function getReqDataObject(rawOptions) {
   data.url = data.href;
   // simple rename
   data.query = data.search;
-  // delete duplicate or extraneous keys
-  delete data.search;
-  delete data.host;
-  delete data.href;
-  // delete data['user-agent'];
 
   // sometimes request headers come in as an array
   // make them strings to conform to our schema better
@@ -81,6 +74,7 @@ function getReqDataObject(rawOptions) {
       : data.headers[k];
   });
 
+  // delete duplicate or extraneous keys
   return excludeUnnecessaryReqKeys(data);
 }
 
@@ -118,11 +112,15 @@ const defaultKeysToRecord = [
   'response.statusMessage'
 ];
 
-function filterData(config = {}, obj = {}) {
+function filterData(config = {}, completeHttpObj = {}) {
+  const whitelistedObject = pickBy(
+    completeHttpObj,
+    (v, k) => defaultKeysToRecord.indexOf(k) > -1
+  );
   if (typeof config.filter === 'function') {
-    return config.filter(obj);
+    return config.filter(whitelistedObject, completeHttpObj);
   }
-  return pickBy(obj, (v, k) => defaultKeysToRecord.indexOf(k) > -1);
+  return whitelistedObject;
 }
 
 function wrapHttpRequest({ timeline, data: moduleData = {}, config = {} }) {
