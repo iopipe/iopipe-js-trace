@@ -131,10 +131,10 @@ test('autoHttp works with got(url)', async () => {
     // performanceEntires should have start, end, and measure entries
     expect(performanceEntries).toHaveLength(3);
     const expectedMetricKeys = [
-      'req.method',
-      'req.url',
-      'res.headers.content-length',
-      'res.statusCode',
+      'request.method',
+      'request.url',
+      'response.headers.content-length',
+      'response.statusCode',
       'type'
     ];
     const expectedMetrics = _.chain(metrics)
@@ -164,7 +164,7 @@ test('autoHttp works with got(url) and options', async () => {
             enabled: true,
             filter: obj => {
               // test excluding traces by arbitrary user code
-              return obj['req.query'] === '?exclude=true' ? false : obj;
+              return obj['request.query'] === '?exclude=true' ? false : obj;
             }
           }
         })
@@ -190,10 +190,10 @@ test('autoHttp works with got(url) and options', async () => {
     // performanceEntires should have start, end, and measure entries
     expect(performanceEntries).toHaveLength(3);
     const expectedMetricKeys = [
-      'req.method',
-      'req.url',
-      'res.headers.content-length',
-      'res.statusCode',
+      'request.method',
+      'request.url',
+      'response.headers.content-length',
+      'response.statusCode',
       'type'
     ];
     const expectedMetrics = _.chain(metrics)

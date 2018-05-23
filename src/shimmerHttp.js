@@ -61,14 +61,10 @@ function getReqDataObject(rawOptions) {
   const data =
     typeof rawOptions === 'string'
       ? { href: rawOptions, headers: {} }
-      : Object.assign({}, rawOptions) || {};
-
-  const urlObject =
-    typeof data === 'string' ? url.parse(rawOptions) : rawOptions;
-  Object.assign(data, urlObject);
+      : Object.assign({}, rawOptions, { href: url.format(rawOptions) }) || {};
 
   // ensure url key is present with full URI
-  data.url = data.href || url.format(data);
+  data.url = data.href;
   // simple rename
   data.query = data.search;
   // delete duplicate or extraneous keys
@@ -95,32 +91,31 @@ function getResDataObject(res) {
 }
 
 const defaultKeysToRecord = [
-  'req.headers.user-agent',
-  'req.headers.accept-encoding',
-  'req.method',
-  'req.path',
-  'req.protocol',
-  'req.port',
-  'req.hostname',
-  'req.hash',
-  'req.pathname',
-  'req.url',
-  'req.query',
-  'req.user-agent',
-  'req.accept-encoding',
-  'res.headers.cache-control',
-  'res.headers.content-type',
-  'res.headers.date',
-  'res.headers.etag',
-  'res.headers.strict-transport-security',
-  'res.headers.content-encoding',
-  'res.headers.content-length',
-  'res.headers.age',
-  'res.headers.connection',
-  'res.headers.server',
-  'res.headers.vary',
-  'res.statusCode',
-  'res.statusMessage'
+  'request.headers.user-agent',
+  'request.headers.accept-encoding',
+  'request.method',
+  'request.path',
+  'request.protocol',
+  'request.port',
+  'request.hostname',
+  'request.hash',
+  'request.pathname',
+  'request.url',
+  'request.query',
+  'request.accept-encoding',
+  'response.headers.cache-control',
+  'response.headers.content-type',
+  'response.headers.date',
+  'response.headers.etag',
+  'response.headers.strict-transport-security',
+  'response.headers.content-encoding',
+  'response.headers.content-length',
+  'response.headers.age',
+  'response.headers.connection',
+  'response.headers.server',
+  'response.headers.vary',
+  'response.statusCode',
+  'response.statusMessage'
 ];
 
 function filterData(config = {}, obj = {}) {
@@ -147,13 +142,13 @@ function wrapHttpRequest({ timeline, data: moduleData = {}, config = {} }) {
 
       // setup http trace data that will be sent to IOpipe later
       moduleData[id] = {};
-      moduleData[id].req = getReqDataObject(rawOptions);
+      moduleData[id].request = getReqDataObject(rawOptions);
 
       // the func to execute at the end of the http call
       function extendedCallback(res) {
         timeline.mark(`end:${id}`);
         // add full response data
-        moduleData[id].res = getResDataObject(res);
+        moduleData[id].response = getResDataObject(res);
         // flatten object for easy transformation/filtering later
         moduleData[id] = flatten(moduleData[id]);
         moduleData[id] = filterData(config, moduleData[id]);

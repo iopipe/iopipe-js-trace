@@ -51,8 +51,8 @@ function addTimelineMeasures(pluginInstance, timelineArg) {
 function metricsFromModuleAutoData(plugin) {
   const { iopipe = {} } = plugin.invocationInstance.context;
   const recordMetric = iopipe.metric || iopipe.log;
-  Object.keys(plugin.autoData.data).forEach(id => {
-    const objFlat = flatten(plugin.autoData.data[id]);
+  Object.keys(plugin.autoHttpData.data).forEach(id => {
+    const objFlat = flatten(plugin.autoHttpData.data[id]);
     Object.keys(objFlat).forEach(path => {
       recordMetric(`${METRIC_PREFIX}.${id}.${path}`, objFlat[path]);
     });
@@ -61,11 +61,11 @@ function metricsFromModuleAutoData(plugin) {
 }
 
 function recordAutoHttpData(plugin) {
-  addTimelineMeasures(plugin, plugin.autoData.timeline);
+  addTimelineMeasures(plugin, plugin.autoHttpData.timeline);
   metricsFromModuleAutoData(plugin);
-  addToReport(plugin, plugin.autoData.timeline);
-  plugin.autoData.timeline.clear();
-  plugin.autoData.data = {};
+  addToReport(plugin, plugin.autoHttpData.timeline);
+  plugin.autoHttpData.timeline.clear();
+  plugin.autoHttpData.data = {};
 }
 
 class TracePlugin {
@@ -79,13 +79,13 @@ class TracePlugin {
       'pre:report': this.preReport.bind(this)
     };
     if (this.config.autoHttp.enabled) {
-      this.autoData = {
+      this.autoHttpData = {
         timeline: new Perf({ timestamp: true }),
         // arbitrary data about each trace that will end up in custom metrics
         data: {},
         config: this.config.autoHttp
       };
-      shimmerHttp(this.autoData);
+      shimmerHttp(this.autoHttpData);
     }
     return this;
   }

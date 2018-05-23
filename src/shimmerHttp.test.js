@@ -13,12 +13,12 @@ function iopipeComExpect(
   const dataValues = _.values(data);
   expect(dataValues).toHaveLength(1);
   const [obj] = dataValues;
-  expect(obj['req.url']).toBe(href);
+  expect(obj['request.url']).toBe(href);
   Object.keys(reqHeaders).forEach(header => {
-    expect(obj[`req.${header}`]).toBe(reqHeaders[header]);
+    expect(obj[`request.${header}`]).toBe(reqHeaders[header]);
   });
-  expect(obj['res.headers.content-type']).toBe('text/plain');
-  expect(obj['res.statusCode']).toBe(statusCode);
+  expect(obj['response.headers.content-type']).toBe('text/plain');
+  expect(obj['response.statusCode']).toBe(statusCode);
 
   const entries = timeline.getEntries();
   expect(entries).toHaveLength(2);
@@ -133,7 +133,6 @@ test('Wrap works with https.get(string)', done => {
   const timeline = new Perf({ timestamp: true });
   const data = {};
   wrap({ timeline, data });
-
   const https = require('https');
   const href = 'https://iopipe.com?https.get(string)';
 
@@ -215,11 +214,11 @@ test('Wrap works with async got(string) and filter', async () => {
     config: {
       filter: obj => {
         // test excluding traces by arbitrary user code
-        if (obj['req.query'] === '?exclude') {
+        if (obj['request.query'] === '?exclude') {
           return false;
         }
-        // only record req.url otherwise
-        return _.pick(obj, ['req.url']);
+        // only record request.url otherwise
+        return _.pick(obj, ['request.url']);
       }
     }
   });
