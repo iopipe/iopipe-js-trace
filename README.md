@@ -85,17 +85,17 @@ const iopipe = iopipeLib({
       autoHttp: {
         enabled: true,
         filter: (safeData, allData) => {
-          // obj = {'res.url':'http://iopipe.com', 'res.method': 'GET'}
+          // obj = {'request.url':'http://iopipe.com', 'request.method': 'GET'}
           // return the object with filtered keys
           // or return false to exclude the trace data completely
-          const url = safeData['res.url'];
+          const url = safeData['request.url'];
           if (url.match(/restricted/)) {
             // if you don't want any traces on this restricted URI return false
             return false;
           } else if (url.match(/cat-castle/)) {
             // if you need to keep track of a sensitive header
             return Object.assign(safeData, {
-              'req.headers.cookie': allData['req.headers.cookie']
+              'request.headers.cookie': allData['request.headers.cookie']
             });
           }
           // if you want to record the default data after some logic checks
