@@ -221,6 +221,9 @@ test('Wrap works with async got(string) and filter', async () => {
         expect(obj['request.headers.cookie']).toBeUndefined();
         // second arg should be a more "complete" object
         expect(complete['request.headers.cookie']).toBe('my-great-cookie');
+        // cookies that are passed as array should be recorded in dot notation
+        expect(complete['request.headers.set-cookie.0']).toBe('zip');
+        expect(complete['request.headers.set-cookie.1']).toBe('zap');
         // only record request.url otherwise
         return _.pick(obj, ['request.url']);
       }
@@ -232,7 +235,8 @@ test('Wrap works with async got(string) and filter', async () => {
   await Promise.all([
     got('http://iopipe.com?got(string)', {
       headers: {
-        cookie: 'my-great-cookie'
+        cookie: 'my-great-cookie',
+        'Set-Cookie': ['zip', 'zap']
       }
     }),
     got('http://iopipe.com?exclude')

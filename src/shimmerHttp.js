@@ -67,11 +67,13 @@ function getReqDataObject(rawOptions) {
   data.query = data.search;
 
   // sometimes request headers come in as an array
-  // make them strings to conform to our schema better
+  // record each header value individually as a new custom metric
   Object.keys(data.headers || {}).forEach(k => {
-    data.headers[k] = isArray(data.headers[k])
-      ? data.headers[k].join(' ')
-      : data.headers[k];
+    if (isArray(data.headers[k])) {
+      data.headers[k].forEach((innerHeaderValue, index) => {
+        data.headers[`${k}.${index}`] = innerHeaderValue;
+      });
+    }
   });
 
   // delete duplicate or extraneous keys
