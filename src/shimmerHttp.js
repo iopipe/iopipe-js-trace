@@ -34,6 +34,7 @@ function wrapHttpGet(mod) {
 
 // these are keys that are mostly node specific and come from the actual js request object
 const unnecessaryReqKeys = [
+  'accept-encoding',
   'agent',
   'automaticFailover',
   'cache',
@@ -98,7 +99,6 @@ const defaultKeysToRecord = [
   'request.pathname',
   'request.url',
   'request.query',
-  'request.accept-encoding',
   'response.headers.cache-control',
   'response.headers.content-type',
   'response.headers.date',
