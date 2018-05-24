@@ -68,14 +68,14 @@ context.iopipe.measure('custom', 'init', 'db');
 
 Automatically create traces and matching metadata for each http/s call made within your function invocation.
 
-#### `autoHttp.enabled` (bool: optional = true)
+#### `autoHttp.enabled` (bool: optional = false)
 
-HTTP/S auto-tracing is enabled by default.
+Enable HTTP/S auto-tracing. Disabled by default.
 
 #### `autoHttp.filter` (func: optional)
 
 Filter what data is recorded for each http request that occurs within the invocation. The function will be passed two arguments. The first is an object containing "safe" data that is typically not sensitive in nature. The second argument is a more complete object with the same shape that may include sensitive data. You can use these objects to determine:
-- A. What information to record / not to record (ie filter out certain headers)
+- A. What information to record / not to record (i.e. filter out certain headers)
 - B. If the http call should be completely excluded from trace data (ie filter out sensitive calls altogether)
 
 ```js
