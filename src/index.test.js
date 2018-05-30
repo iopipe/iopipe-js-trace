@@ -218,3 +218,39 @@ test('autoHttp works with got(url) and options', async () => {
     throw err;
   }
 });
+
+test('autoHttp works with consecutive invocations', async () => {
+  try {
+    const iopipeInstance = iopipe({
+      token: 'test',
+      plugins: [tracePlugin({ autoHttp: { enabled: true } })]
+    });
+    const wrappedFn = iopipeInstance(async (event, context) => {
+      const got = require('got');
+      const res = await got(`https://www.iopipe.com?run=${event.run}`);
+      context.succeed(res.statusCode);
+    });
+
+    const context = mockContext({ functionName: 'consecutive1' });
+    wrappedFn({ run: 1 }, context);
+    await context.Promise;
+
+    const context2 = mockContext({ functionName: 'consecutive2' });
+    wrappedFn({ run: 2 }, context2);
+    await context2.Promise;
+
+    const reports = _.chain(invocations)
+      .filter(obj => obj.context.functionName.match('consecutive'))
+      .map('report.report')
+      .value();
+
+    const invTraces = _.chain(reports)
+      .map('performanceEntries')
+      .flatten()
+      .value();
+    // 3 entries per trace (1 trace per invocation - 2 traces total)
+    expect(invTraces).toHaveLength(6);
+  } catch (err) {
+    throw err;
+  }
+});

@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 export const invocations = [];
 
 export function addToReport(pluginInstance, timelineArg) {
@@ -5,5 +7,7 @@ export function addToReport(pluginInstance, timelineArg) {
   const entries = (timelineArg || timeline).getEntries();
   const { report } = invocationInstance.report;
   report.performanceEntries = (report.performanceEntries || []).concat(entries);
-  invocations.push(invocationInstance);
+  if (!_.find(invocations, i => i === invocationInstance)) {
+    invocations.push(invocationInstance);
+  }
 }

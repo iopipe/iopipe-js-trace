@@ -3,7 +3,7 @@ import { flatten } from 'flat';
 
 import pkg from '../package';
 import { addToReport } from './addToReport';
-import { wrap as shimmerHttp } from './shimmerHttp';
+import { wrap as httpWrap, unwrap as httpUnwrap } from './shimmerHttp';
 
 const METRIC_PREFIX = '@iopipe/trace';
 
@@ -96,7 +96,7 @@ class TracePlugin {
         data: {},
         config: this.config.autoHttp
       };
-      shimmerHttp(this.autoHttpData);
+      httpWrap(this.autoHttpData);
     }
     return this;
   }
@@ -118,6 +118,7 @@ class TracePlugin {
       recordAutoHttpData(this);
     }
     addToReport(this);
+    httpUnwrap();
   }
   start(name) {
     this.timeline.mark(`start:${name}`);
