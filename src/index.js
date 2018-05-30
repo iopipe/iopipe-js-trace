@@ -25,7 +25,7 @@ function getConfig(config = {}) {
       enabled:
         typeof autoHttp.enabled === 'boolean'
           ? autoHttp.enabled
-          : getBooleanFromEnv(process.env.IOPIPE_TRACE_AUTO_HTTP_ENABLED),
+          : getBooleanFromEnv('IOPIPE_TRACE_AUTO_HTTP_ENABLED'),
       filter: autoHttp.filter
     },
     autoMeasure

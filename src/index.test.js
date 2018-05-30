@@ -15,7 +15,12 @@ beforeEach(() => {
   unwrap();
 });
 
+afterEach(() => {
+  delete process.env.IOPIPE_TRACE_AUTO_HTTP_ENABLED;
+});
+
 test('Can instantiate the plugin with no options', () => {
+  process.env.IOPIPE_TRACE_AUTO_HTTP_ENABLED = 'true';
   const plugin = tracePlugin();
   const inst = plugin({});
   expect(_.isFunction(inst.hooks['post:setup'])).toBe(true);
@@ -25,6 +30,7 @@ test('Can instantiate the plugin with no options', () => {
   expect(_.isPlainObject(inst.config)).toBe(true);
   expect(inst.timeline instanceof Perf).toBe(true);
   expect(inst.config.autoMeasure).toBe(true);
+  expect(inst.config.autoHttp.enabled).toBe(true);
   expect(inst.meta.name).toBe('@iopipe/trace');
   expect(inst.meta.version).toBe(pkg.version);
   expect(inst.meta.homepage).toBe(pkg.homepage);
