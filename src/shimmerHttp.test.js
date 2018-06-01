@@ -1,12 +1,20 @@
 import _ from 'lodash';
 import Perf from 'performance-node';
+import superagent from 'superagent';
 import { flatten } from 'flat';
 
 import { wrap, unwrap } from './shimmerHttp';
 
 function iopipeComExpect(
   res,
-  { statusCode = 301, href = '', timeline, data, headers: reqHeaders = {} }
+  {
+    statusCode = 301,
+    href = '',
+    timeline,
+    data,
+    headers: reqHeaders = {},
+    contentType = 'text/plain'
+  }
 ) {
   expect(res.statusCode).toBe(statusCode);
 
@@ -17,7 +25,7 @@ function iopipeComExpect(
   Object.keys(reqHeaders).forEach(header => {
     expect(obj[`request.${header}`]).toBe(reqHeaders[header]);
   });
-  expect(obj['response.headers.content-type']).toBe('text/plain');
+  expect(obj['response.headers.content-type']).toBe(contentType);
   expect(obj['response.statusCode']).toBe(statusCode);
 
   const entries = timeline.getEntries();
@@ -249,4 +257,22 @@ test('Wrap works with async got(string) and filter', async () => {
     'http://iopipe.com/?got(string)',
     'https://www.iopipe.com/?got(string)'
   ]);
+});
+
+test('Wrap works with superagent', done => {
+  const timeline = new Perf({ timestamp: true });
+  const data = {};
+  wrap({ timeline, data });
+
+  const href = 'https://graphql.iopipe.com/health';
+  superagent.get(href).then(res => {
+    iopipeComExpect(res, {
+      data,
+      timeline,
+      href,
+      statusCode: 200,
+      contentType: 'application/json; charset=utf-8'
+    });
+    done();
+  });
 });

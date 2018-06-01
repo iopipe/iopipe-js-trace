@@ -40,7 +40,8 @@
     "aws-lambda-mock-context": "^3.0.0",
     "delay": "^2.0.0",
     "got": "^8.3.1",
-    "lodash": "^4.17.4"
+    "lodash": "^4.17.4",
+    "superagent": "^3.8.3"
   },
   "dependencies": {
     "flat": "^4.0.0",

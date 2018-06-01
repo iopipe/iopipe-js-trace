@@ -55,15 +55,22 @@ function excludeUnnecessaryReqKeys(obj) {
   return pickBy(obj, (v, k) => unnecessaryReqKeys.indexOf(k) === -1);
 }
 
-function getReqDataObject(rawOptions) {
-  // options might be a string ie http.get(), coerce to object
-  const data =
-    typeof rawOptions === 'string'
-      ? { href: rawOptions, headers: {} }
-      : Object.assign({}, rawOptions, { href: url.format(rawOptions) }) || {};
+function getReqDataObject(rawOptions, protocol) {
+  const reqDataObj = Object.assign({}, rawOptions);
+  // some libraries (superagent) do not pass protocol and pathname, which is problematic when trying to use url.format - set sensible defaults
+  reqDataObj.protocol = reqDataObj.protocol || protocol;
+  reqDataObj.pathname = reqDataObj.pathname || reqDataObj.path;
 
-  // ensure url key is present with full URI
-  data.url = data.href;
+  const href =
+    typeof rawOptions === 'string' ? rawOptions : url.format(reqDataObj);
+  const originalObj =
+    typeof rawOptions === 'string' ? { href: rawOptions } : rawOptions;
+
+  const data = Object.assign({}, originalObj, url.parse(href));
+
+  // ensure url key is present with original URI, it can be slightly transformed by url.format
+  data.url = href;
+
   // simple rename
   data.query = data.search;
 
@@ -125,7 +132,12 @@ function filterData(config = {}, completeHttpObj = {}) {
   return whitelistedObject;
 }
 
-function wrapHttpRequest({ timeline, data: moduleData = {}, config = {} }) {
+function wrapHttpRequest({
+  timeline,
+  data: moduleData = {},
+  config = {},
+  protocol
+}) {
   return function wrapper(original) {
     return function execute(rawOptions, originalCallback) {
       // bail if we have already started tracking this request
@@ -142,7 +154,7 @@ function wrapHttpRequest({ timeline, data: moduleData = {}, config = {} }) {
 
       // setup http trace data that will be sent to IOpipe later
       moduleData[id] = {};
-      moduleData[id].request = getReqDataObject(rawOptions);
+      moduleData[id].request = getReqDataObject(rawOptions, protocol);
 
       // the func to execute at the end of the http call
       function extendedCallback(res) {
@@ -161,7 +173,7 @@ function wrapHttpRequest({ timeline, data: moduleData = {}, config = {} }) {
           delete moduleData[id];
         }
 
-        if (originalCallback) {
+        if (typeof originalCallback === 'function') {
           return originalCallback.apply(this, [res]);
         }
         return true;
@@ -171,15 +183,7 @@ function wrapHttpRequest({ timeline, data: moduleData = {}, config = {} }) {
       // this can happen for the https module which calls the http module internally
       extendedCallback.__iopipeTraceId = id;
 
-      // execute the original function with callback
-      if (typeof originalCallback === 'function') {
-        return original.apply(this, [rawOptions, extendedCallback]);
-      } else {
-        // the user didn't specify a callback, add it as a "response" handler ourselves
-        return original
-          .apply(this, [rawOptions])
-          .on('response', extendedCallback);
-      }
+      return original.apply(this, [rawOptions, extendedCallback]);
     };
   };
 }
@@ -194,13 +198,21 @@ function wrap({ timeline, data = {}, config = {} } = {}) {
 
   if (!http.__iopipeShimmer) {
     shimmer.wrap(http, 'get', () => wrapHttpGet(http));
-    shimmer.wrap(http, 'request', wrapHttpRequest({ timeline, data, config }));
+    shimmer.wrap(
+      http,
+      'request',
+      wrapHttpRequest({ timeline, data, config, protocol: 'http' })
+    );
     http.__iopipeShimmer = true;
   }
 
   if (!https.__iopipeShimmer) {
     shimmer.wrap(https, 'get', () => wrapHttpGet(https));
-    shimmer.wrap(https, 'request', wrapHttpRequest({ timeline, data, config }));
+    shimmer.wrap(
+      https,
+      'request',
+      wrapHttpRequest({ timeline, data, config, protocol: 'https' })
+    );
     https.__iopipeShimmer = true;
   }
 
