@@ -58,7 +58,8 @@ test('Works with iopipe', async () => {
       .get('report')
       .value();
 
-    const { performanceEntries } = report.report;
+    const { performanceEntries, labels } = report.report;
+    expect(labels.includes('@iopipe/plugin-trace')).toBe(true);
     expect(performanceEntries).toHaveLength(7);
     const [startMark, customMeasure, measure, endMark] = performanceEntries;
     expect(_.inRange(measure.duration, 5, 20)).toBe(true);
