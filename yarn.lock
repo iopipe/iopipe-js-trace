@@ -79,10 +79,11 @@
     to-fast-properties "^2.0.0"
 
 "@iopipe/core@^1.x":
-  version "1.5.0"
-  resolved "https://registry.yarnpkg.com/@iopipe/core/-/core-1.5.0.tgz#40d47861fadca698cd42d2af2d7f82e0914eb194"
+  version "1.11.1"
+  resolved "https://registry.yarnpkg.com/@iopipe/core/-/core-1.11.1.tgz#6107d55831ffc429ff613f9e3f78c691a02a9102"
   dependencies:
-    cosmiconfig "^3.1.0"
+    cosmiconfig "^4"
+    lodash.uniqby "^4.7.0"
 
 "@iopipe/eslint-config-iopipe@1.0.2":
   version "1.0.2"
@@ -2171,6 +2172,15 @@ cosmiconfig@3.1.0, cosmiconfig@^3.1.0:
     is-directory "^0.3.1"
     js-yaml "^3.9.0"
     parse-json "^3.0.0"
+    require-from-string "^2.0.1"
+
+cosmiconfig@^4:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/cosmiconfig/-/cosmiconfig-4.0.0.tgz#760391549580bbd2df1e562bc177b13c290972dc"
+  dependencies:
+    is-directory "^0.3.1"
+    js-yaml "^3.9.0"
+    parse-json "^4.0.0"
     require-from-string "^2.0.1"
 
 create-ecdh@^4.0.0:
@@ -5156,6 +5166,10 @@ lodash.toarray@^4.4.0:
 lodash.topairs@^4.3.0:
   version "4.3.0"
   resolved "https://registry.yarnpkg.com/lodash.topairs/-/lodash.topairs-4.3.0.tgz#3b6deaa37d60fb116713c46c5f17ea190ec48d64"
+
+lodash.uniqby@^4.7.0:
+  version "4.7.0"
+  resolved "https://registry.yarnpkg.com/lodash.uniqby/-/lodash.uniqby-4.7.0.tgz#d99c07a669e9e6d24e1362dfe266c67616af1302"
 
 lodash.values@^4.3.0:
   version "4.3.0"

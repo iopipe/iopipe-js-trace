@@ -58,6 +58,9 @@ class TracePlugin {
       end: this.end.bind(this)
     };
     this.invocationInstance.context.iopipe.measure = this.measure.bind(this);
+    if (typeof this.invocationInstance.context.iopipe.label === 'function') {
+      this.invocationInstance.context.iopipe.label('@iopipe/plugin-trace');
+    }
   }
   preReport() {
     if (this.config.autoMeasure) {
