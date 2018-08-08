@@ -87,6 +87,7 @@ class TracePlugin {
     this.timeline = new Perf({ timestamp: true });
     this.hooks = {
       'post:setup': this.postSetup.bind(this),
+      'post:invoke': this.postInvoke.bind(this),
       'pre:report': this.preReport.bind(this)
     };
     if (this.config.autoHttp.enabled) {
@@ -109,6 +110,14 @@ class TracePlugin {
       end: this.end.bind(this)
     };
     this.invocationInstance.context.iopipe.measure = this.measure.bind(this);
+  }
+  postInvoke() {
+    if (
+      typeof this.invocationInstance.context.iopipe.label === 'function' &&
+      this.timeline.getEntries().length > 0
+    ) {
+      this.invocationInstance.context.iopipe.label('@iopipe/plugin-trace');
+    }
   }
   preReport() {
     if (this.config.autoMeasure) {

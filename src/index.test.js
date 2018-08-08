@@ -53,6 +53,7 @@ test('Works with iopipe', async () => {
       testEndDate = Date.now() + 1;
       context.succeed('wow');
     });
+
     const context = mockContext({ functionName: 'test-1a' });
     wrappedFn({}, context);
 
@@ -69,7 +70,8 @@ test('Works with iopipe', async () => {
       .get('report')
       .value();
 
-    const { performanceEntries } = report.report;
+    const { performanceEntries, labels } = report.report;
+    expect(labels).toContain('@iopipe/plugin-trace');
     expect(performanceEntries).toHaveLength(7);
     const [startMark, customMeasure, measure, endMark] = performanceEntries;
     expect(_.inRange(measure.duration, 5, 20)).toBe(true);
@@ -85,6 +87,21 @@ test('Works with iopipe', async () => {
   }
 });
 
+test('Wrapped function with no traces', async () => {
+  const iopipeInstance = iopipe({ token: 'test', plugins: [tracePlugin()] });
+  const wrappedFnNoTraces = iopipeInstance((event, context) => {
+    context.succeed('wow');
+  });
+  const context = mockContext({ functionName: 'test-1c' });
+  wrappedFnNoTraces({}, context);
+  await context.Promise;
+  const report = _.chain(invocations)
+    .find(obj => obj.context.functionName === 'test-1c')
+    .get('report.report')
+    .value();
+  expect(report.labels).not.toContain('@iopipe/plugin-trace');
+  expect(report.performanceEntries).toHaveLength(0);
+});
 test('Can disable autoMeasure', async () => {
   try {
     const iopipeInstance = iopipe({
