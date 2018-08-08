@@ -18,8 +18,12 @@ export function addHttpTracesToReport(plugin) {
   const { report: { report = {} } = {} } = plugin.invocationInstance;
   Object.keys(plugin.autoHttpData.data).forEach(id => {
     const obj = unflatten(plugin.autoHttpData.data[id] || {});
-    obj.request.headers = headersObjToArray(obj.request.headers);
-    obj.response.headers = headersObjToArray(obj.response.headers);
+    if (obj.request) {
+      obj.request.headers = headersObjToArray(obj.request.headers);
+    }
+    if (obj.response) {
+      obj.response.headers = headersObjToArray(obj.response.headers);
+    }
     // use start mark for startTime in case the http call did not finish / no callback
     // and we do not have a measurement
     const [startMark = {}] = timeline.getEntriesByName(`start:${id}`) || [];
