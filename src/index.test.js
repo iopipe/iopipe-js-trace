@@ -10,11 +10,15 @@ import { unwrap } from './shimmerHttp';
 const tracePlugin = require('.');
 
 const allowedHeadersInSnapshot = [
-  'user-agent',
   'vary',
   'server',
-  'content-type'
+  'content-type',
+  'user-agent'
 ];
+
+const defaultGotOptions = {
+  headers: { 'user-agent': 'iopipe-test' }
+};
 
 function getTracesFromInspectableInv(inv) {
   const { httpTraceEntries = [] } = inv.report.report;
@@ -168,7 +172,10 @@ test('autoHttp works with got(url) plain', async () => {
     });
     const wrappedFn = iopipeInstance(async (event, context) => {
       const got = require('got');
-      const res = await got('https://www.iopipe.com:443?test=foo#wowhash');
+      const res = await got(
+        'https://www.iopipe.com:443?test=foo#wowhash',
+        defaultGotOptions
+      );
       context.succeed(res.statusCode);
     });
     const context = mockContext({ functionName: 'got(url)' });
@@ -213,8 +220,8 @@ test('autoHttp works with got(url) and options', async () => {
     const wrappedFn = iopipeInstance(async (event, context) => {
       const got = require('got');
       const [res1] = await Promise.all([
-        got('https://www.iopipe.com:443?test=foo#wowhash'),
-        got('https://www.iopipe.com:443?exclude=true')
+        got('https://www.iopipe.com:443?test=foo#wowhash', defaultGotOptions),
+        got('https://www.iopipe.com:443?exclude=true', defaultGotOptions)
       ]);
       context.succeed(res1.statusCode);
     });
@@ -243,7 +250,10 @@ test('autoHttp works with consecutive invocations', async () => {
     });
     const wrappedFn = iopipeInstance(async (event, context) => {
       const got = require('got');
-      const res = await got(`https://www.iopipe.com?run=${event.run}`);
+      const res = await got(
+        `https://www.iopipe.com?run=${event.run}`,
+        defaultGotOptions
+      );
       context.succeed(res.statusCode);
     });
 
