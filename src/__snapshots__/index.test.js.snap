@@ -1,0 +1,161 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`autoHttp works with consecutive invocations 1`] = `
+Array [
+  Object {
+    "request": Object {
+      "hash": null,
+      "headers": Array [
+        Object {
+          "key": "user-agent",
+          "string": "got/8.3.2 (https://github.com/sindresorhus/got)",
+        },
+      ],
+      "hostname": "www.iopipe.com",
+      "method": "GET",
+      "path": "/?run=1",
+      "pathname": "/",
+      "port": null,
+      "protocol": "https:",
+      "query": "?run=1",
+      "url": "https://www.iopipe.com/?run=1",
+    },
+    "response": Object {
+      "headers": Array [
+        Object {
+          "key": "vary",
+          "string": "Accept-Encoding",
+        },
+        Object {
+          "key": "server",
+          "string": "Netlify",
+        },
+        Object {
+          "key": "content-type",
+          "string": "text/html; charset=UTF-8",
+        },
+      ],
+      "statusCode": 200,
+      "statusMessage": "OK",
+    },
+  },
+  Object {
+    "request": Object {
+      "hash": null,
+      "headers": Array [
+        Object {
+          "key": "user-agent",
+          "string": "got/8.3.2 (https://github.com/sindresorhus/got)",
+        },
+      ],
+      "hostname": "www.iopipe.com",
+      "method": "GET",
+      "path": "/?run=2",
+      "pathname": "/",
+      "port": null,
+      "protocol": "https:",
+      "query": "?run=2",
+      "url": "https://www.iopipe.com/?run=2",
+    },
+    "response": Object {
+      "headers": Array [
+        Object {
+          "key": "vary",
+          "string": "Accept-Encoding",
+        },
+        Object {
+          "key": "server",
+          "string": "Netlify",
+        },
+        Object {
+          "key": "content-type",
+          "string": "text/html; charset=UTF-8",
+        },
+      ],
+      "statusCode": 200,
+      "statusMessage": "OK",
+    },
+  },
+]
+`;
+
+exports[`autoHttp works with got(url) and options 1`] = `
+Array [
+  Object {
+    "request": Object {
+      "headers": Array [
+        Object {
+          "key": "user-agent",
+          "string": "got/8.3.2 (https://github.com/sindresorhus/got)",
+        },
+      ],
+      "hostname": "www.iopipe.com",
+      "method": "GET",
+      "path": "/?test=foo",
+      "pathname": "/",
+      "port": "443",
+      "protocol": "https:",
+      "query": "?test=foo",
+      "url": "https://www.iopipe.com:443/?test=foo#wowhash",
+    },
+    "response": Object {
+      "headers": Array [
+        Object {
+          "key": "vary",
+          "string": "Accept-Encoding",
+        },
+        Object {
+          "key": "server",
+          "string": "Netlify",
+        },
+        Object {
+          "key": "content-type",
+          "string": "text/html; charset=UTF-8",
+        },
+      ],
+      "statusCode": 200,
+      "statusMessage": "OK",
+    },
+  },
+]
+`;
+
+exports[`autoHttp works with got(url) plain 1`] = `
+Object {
+  "request": Object {
+    "hash": "#wowhash",
+    "headers": Array [
+      Object {
+        "key": "user-agent",
+        "string": "got/8.3.2 (https://github.com/sindresorhus/got)",
+      },
+    ],
+    "hostname": "www.iopipe.com",
+    "method": "GET",
+    "path": "/?test=foo",
+    "pathname": "/",
+    "port": "443",
+    "protocol": "https:",
+    "query": "?test=foo",
+    "url": "https://www.iopipe.com:443/?test=foo#wowhash",
+  },
+  "response": Object {
+    "headers": Array [
+      Object {
+        "key": "vary",
+        "string": "Accept-Encoding",
+      },
+      Object {
+        "key": "server",
+        "string": "Netlify",
+      },
+      Object {
+        "key": "content-type",
+        "string": "text/html; charset=UTF-8",
+      },
+    ],
+    "statusCode": 200,
+    "statusMessage": "OK",
+  },
+}
+`;

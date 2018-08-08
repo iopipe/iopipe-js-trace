@@ -1,11 +1,8 @@
 import Perf from 'performance-node';
-import { flatten } from 'flat';
 
 import pkg from '../package';
-import { addToReport } from './addToReport';
+import { addToReport, addHttpTracesToReport } from './addToReport';
 import { wrap as httpWrap, unwrap as httpUnwrap } from './shimmerHttp';
-
-const METRIC_PREFIX = '@iopipe/trace';
 
 function getBooleanFromEnv(key = '') {
   const isFalsey =
@@ -59,22 +56,9 @@ function addTimelineMeasures(pluginInstance, timelineArg) {
   return true;
 }
 
-function metricsFromAutoHttpData(plugin) {
-  const { iopipe = {} } = plugin.invocationInstance.context;
-  const recordMetric = iopipe.metric || iopipe.log;
-  Object.keys(plugin.autoHttpData.data).forEach(id => {
-    const objFlat = flatten(plugin.autoHttpData.data[id]);
-    Object.keys(objFlat).forEach(path => {
-      recordMetric(`${METRIC_PREFIX}.${id}.${path}`, objFlat[path]);
-    });
-    recordMetric(`${METRIC_PREFIX}.${id}.type`, 'autoHttp');
-  });
-}
-
 function recordAutoHttpData(plugin) {
   addTimelineMeasures(plugin, plugin.autoHttpData.timeline);
-  metricsFromAutoHttpData(plugin);
-  addToReport(plugin, plugin.autoHttpData.timeline);
+  addHttpTracesToReport(plugin);
   plugin.autoHttpData.timeline.clear();
   plugin.autoHttpData.data = {};
 }
@@ -110,6 +94,7 @@ class TracePlugin {
       end: this.end.bind(this)
     };
     this.invocationInstance.context.iopipe.measure = this.measure.bind(this);
+    this.invocationInstance.report.report.httpTraceEntries = [];
   }
   postInvoke() {
     if (
