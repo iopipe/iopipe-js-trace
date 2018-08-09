@@ -1,6 +1,6 @@
 {
   "name": "@iopipe/trace",
-  "version": "1.1.0-autoHttp.4",
+  "version": "0.0.0-semantically-released",
   "description": "IOpipe plugin for tracing metrics",
   "main": "dist/index.js",
   "scripts": {
