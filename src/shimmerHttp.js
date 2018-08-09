@@ -33,26 +33,28 @@ function wrapHttpGet(mod) {
 }
 
 // these are keys that are mostly node specific and come from the actual js request object
-const unnecessaryReqKeys = [
-  'accept-encoding',
-  'agent',
-  'automaticFailover',
-  'cache',
-  'decompress',
-  'followRedirect',
-  'host',
-  'href',
-  'retries',
-  'slashes',
-  'search',
-  'strictTtl',
-  'throwHttpErrors',
-  'useElectronNet',
-  'user-agent'
-];
+const unnecessaryReqKeys = new Map(
+  [
+    'accept-encoding',
+    'agent',
+    'automaticFailover',
+    'cache',
+    'decompress',
+    'followRedirect',
+    'host',
+    'href',
+    'retries',
+    // 'slashes',
+    'search',
+    'strictTtl',
+    'throwHttpErrors',
+    'useElectronNet',
+    'user-agent'
+  ].map(s => [s])
+);
 
 function excludeUnnecessaryReqKeys(obj) {
-  return pickBy(obj, (v, k) => unnecessaryReqKeys.indexOf(k) === -1);
+  return pickBy(obj, (v, k) => !unnecessaryReqKeys.has(k));
 }
 
 function getReqDataObject(rawOptions, protocol) {
@@ -88,43 +90,46 @@ function getReqDataObject(rawOptions, protocol) {
   return excludeUnnecessaryReqKeys(data);
 }
 
-const initialResKeys = ['headers', 'statusCode', 'statusMessage'];
+const initialResKeys = new Map(
+  ['headers', 'statusCode', 'statusMessage'].map(s => [s])
+);
 
 function getResDataObject(res) {
-  return pickBy(res, (v, k) => initialResKeys.indexOf(k) > -1);
+  return pickBy(res, (v, k) => initialResKeys.has(k));
 }
 
-const defaultKeysToRecord = [
-  'request.hash',
-  'request.headers.accept-encoding',
-  'request.headers.user-agent',
-  'request.hostname',
-  'request.method',
-  'request.path',
-  'request.pathname',
-  'request.port',
-  'request.protocol',
-  'request.query',
-  'request.url',
-  'response.headers.age',
-  'response.headers.cache-control',
-  'response.headers.connection',
-  'response.headers.content-encoding',
-  'response.headers.content-length',
-  'response.headers.content-type',
-  'response.headers.date',
-  'response.headers.etag',
-  'response.headers.server',
-  'response.headers.strict-transport-security',
-  'response.headers.vary',
-  'response.statusCode',
-  'response.statusMessage'
-];
+const defaultKeysToRecord = new Map(
+  [
+    'request.hash',
+    'request.headers.accept-encoding',
+    'request.headers.user-agent',
+    'request.hostname',
+    'request.method',
+    'request.path',
+    'request.pathname',
+    'request.port',
+    'request.protocol',
+    'request.query',
+    'request.url',
+    'response.headers.age',
+    'response.headers.cache-control',
+    'response.headers.connection',
+    'response.headers.content-encoding',
+    'response.headers.content-length',
+    'response.headers.content-type',
+    'response.headers.date',
+    'response.headers.etag',
+    'response.headers.server',
+    'response.headers.strict-transport-security',
+    'response.headers.vary',
+    'response.statusCode',
+    'response.statusMessage'
+  ].map(s => [s])
+);
 
 function filterData(config = {}, completeHttpObj = {}) {
-  const whitelistedObject = pickBy(
-    completeHttpObj,
-    (v, k) => defaultKeysToRecord.indexOf(k) > -1
+  const whitelistedObject = pickBy(completeHttpObj, (v, k) =>
+    defaultKeysToRecord.has(k)
   );
   if (typeof config.filter === 'function') {
     return config.filter(whitelistedObject, completeHttpObj);
