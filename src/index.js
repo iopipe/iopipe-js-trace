@@ -97,6 +97,7 @@ class TracePlugin {
     this.invocationInstance.report.report.httpTraceEntries = [];
   }
   postInvoke() {
+    httpUnwrap();
     if (
       typeof this.invocationInstance.context.iopipe.label === 'function' &&
       this.timeline.getEntries().length > 0
@@ -112,7 +113,6 @@ class TracePlugin {
       recordAutoHttpData(this);
     }
     addToReport(this);
-    httpUnwrap();
   }
   start(name) {
     this.timeline.mark(`start:${name}`);
