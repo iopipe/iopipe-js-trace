@@ -28,7 +28,8 @@ export function addHttpTracesToReport(plugin) {
     // and we do not have a measurement
     const [startMark = {}] = timeline.getEntriesByName(`start:${id}`) || [];
     const [measureMark = {}] = timeline.getEntriesByName(`measure:${id}`) || [];
-    obj.startTime = startMark.timestamp || 0;
+    obj.timestamp = startMark.timestamp || 0;
+    obj.startTime = startMark.startTime || 0;
     obj.duration = measureMark.duration || 0;
     report.httpTraceEntries.push(obj);
   });

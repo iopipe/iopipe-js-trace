@@ -33,6 +33,7 @@ function getTracesFromInspectableInv(inv) {
     );
     // delete these keys because they always change, bad for snapshots
     delete trace.startTime;
+    delete trace.timestamp;
     delete trace.duration;
   });
   return httpTraceEntries;
@@ -185,8 +186,9 @@ test('autoHttp works with got(url) plain', async () => {
     const { httpTraceEntries = [] } = inspectableInv.report.report;
     expect(httpTraceEntries).toHaveLength(1);
     const [rawTrace] = inspectableInv.report.report.httpTraceEntries;
-    // ensure startTime and duration keys as they are excluded from trace later because they cannot be in the snapshot
-    expect(rawTrace.startTime).toBeGreaterThan(Date.now() - 10000);
+    // ensure timestamp, startTime and duration keys as they are excluded from trace later because they cannot be in the snapshot
+    expect(rawTrace.timestamp).toBeGreaterThan(Date.now() - 10000);
+    expect(rawTrace.startTime).toBeGreaterThan(1);
     expect(rawTrace.duration).toBeGreaterThan(1);
     const [trace] = getTracesFromInspectableInv(inspectableInv);
     expect(trace).toMatchSnapshot();
