@@ -77,7 +77,7 @@ class TracePlugin {
     if (this.config.autoHttp.enabled) {
       this.autoHttpData = {
         timeline: new Perf({ timestamp: true }),
-        // arbitrary data about each trace that will end up in custom metrics
+        // object to store data about traces that will make it into the report later
         data: {},
         config: this.config.autoHttp
       };
@@ -97,7 +97,9 @@ class TracePlugin {
     this.invocationInstance.report.report.httpTraceEntries = [];
   }
   postInvoke() {
-    httpUnwrap();
+    if (this.config.autoHttp.enabled) {
+      httpUnwrap();
+    }
     if (
       typeof this.invocationInstance.context.iopipe.label === 'function' &&
       this.timeline.getEntries().length > 0
