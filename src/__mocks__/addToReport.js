@@ -1,9 +1,0 @@
-export const invocations = [];
-
-export function addToReport(pluginInstance) {
-  const { timeline, invocationInstance } = pluginInstance;
-  const entries = timeline.getEntries();
-  const { report } = invocationInstance.report;
-  report.performanceEntries = entries;
-  invocations.push(invocationInstance);
-}

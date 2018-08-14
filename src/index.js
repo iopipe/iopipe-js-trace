@@ -1,17 +1,36 @@
 import Perf from 'performance-node';
 
 import pkg from '../package';
-import { addToReport } from './addToReport';
+import { addToReport, addHttpTracesToReport } from './addToReport';
+import { wrap as httpWrap, unwrap as httpUnwrap } from './shimmerHttp';
+
+function getBooleanFromEnv(key = '') {
+  const isFalsey =
+    ['false', 'f', '0'].indexOf(
+      (process.env[key] || '').toString().toLowerCase()
+    ) > -1;
+  if (isFalsey) {
+    return false;
+  }
+  return Boolean(process.env[key]);
+}
 
 function getConfig(config = {}) {
-  const { autoMeasure = true } = config;
+  const { autoMeasure = true, autoHttp = {} } = config;
   return {
+    autoHttp: {
+      enabled:
+        typeof autoHttp.enabled === 'boolean'
+          ? autoHttp.enabled
+          : getBooleanFromEnv('IOPIPE_TRACE_AUTO_HTTP_ENABLED'),
+      filter: autoHttp.filter
+    },
     autoMeasure
   };
 }
 
-function addTimelineMeasures(pluginInstance) {
-  const { timeline } = pluginInstance;
+function addTimelineMeasures(pluginInstance, timelineArg) {
+  const timeline = timelineArg || pluginInstance.timeline;
   if (!(timeline instanceof Perf)) {
     return false;
   }
@@ -37,6 +56,13 @@ function addTimelineMeasures(pluginInstance) {
   return true;
 }
 
+function recordAutoHttpData(plugin) {
+  addTimelineMeasures(plugin, plugin.autoHttpData.timeline);
+  addHttpTracesToReport(plugin);
+  plugin.autoHttpData.timeline.clear();
+  plugin.autoHttpData.data = {};
+}
+
 class TracePlugin {
   constructor(config = {}, invocationInstance) {
     this.invocationInstance = invocationInstance;
@@ -48,6 +74,15 @@ class TracePlugin {
       'post:invoke': this.postInvoke.bind(this),
       'pre:report': this.preReport.bind(this)
     };
+    if (this.config.autoHttp.enabled) {
+      this.autoHttpData = {
+        timeline: new Perf({ timestamp: true }),
+        // object to store data about traces that will make it into the report later
+        data: {},
+        config: this.config.autoHttp
+      };
+      httpWrap(this.autoHttpData);
+    }
     return this;
   }
   get meta() {
@@ -59,8 +94,12 @@ class TracePlugin {
       end: this.end.bind(this)
     };
     this.invocationInstance.context.iopipe.measure = this.measure.bind(this);
+    this.invocationInstance.report.report.httpTraceEntries = [];
   }
   postInvoke() {
+    if (this.config.autoHttp.enabled) {
+      httpUnwrap();
+    }
     if (
       typeof this.invocationInstance.context.iopipe.label === 'function' &&
       this.timeline.getEntries().length > 0
@@ -71,6 +110,9 @@ class TracePlugin {
   preReport() {
     if (this.config.autoMeasure) {
       addTimelineMeasures(this);
+    }
+    if (this.config.autoHttp.enabled) {
+      recordAutoHttpData(this);
     }
     addToReport(this);
   }
