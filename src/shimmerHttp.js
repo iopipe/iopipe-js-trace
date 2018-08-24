@@ -167,7 +167,7 @@ function wrapHttpRequest({
         // add full response data
         moduleData[id].response = getResDataObject(res);
         // flatten object for easy transformation/filtering later
-        moduleData[id] = flatten(moduleData[id]);
+        moduleData[id] = flatten(moduleData[id], { maxDepth: 5 });
         moduleData[id] = filterData(config, moduleData[id]);
 
         // if filter function returns falsey value, drop all data completely
