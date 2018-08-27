@@ -24,6 +24,7 @@ jobs:
       - checkout
       - restore_cache:
           key: yarn-cache-{{ .Branch }}-{{ checksum "yarn.lock" }}
+      - run: yarn
       - run: yarn run validate
       - save_cache:
           key: v1-dist-{{ .Environment.CIRCLE_BRANCH }}-{{ .Environment.CIRCLE_SHA1 }}
