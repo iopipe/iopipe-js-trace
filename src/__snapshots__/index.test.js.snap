@@ -23,10 +23,6 @@ Array [
     "response": Object {
       "headers": Array [
         Object {
-          "key": "vary",
-          "string": "Accept-Encoding",
-        },
-        Object {
           "key": "server",
           "string": "Netlify",
         },
@@ -59,10 +55,6 @@ Array [
     },
     "response": Object {
       "headers": Array [
-        Object {
-          "key": "vary",
-          "string": "Accept-Encoding",
-        },
         Object {
           "key": "server",
           "string": "Netlify",
@@ -101,10 +93,6 @@ Array [
     "response": Object {
       "headers": Array [
         Object {
-          "key": "vary",
-          "string": "Accept-Encoding",
-        },
-        Object {
           "key": "server",
           "string": "Netlify",
         },
@@ -141,10 +129,6 @@ Object {
   },
   "response": Object {
     "headers": Array [
-      Object {
-        "key": "vary",
-        "string": "Accept-Encoding",
-      },
       Object {
         "key": "server",
         "string": "Netlify",
