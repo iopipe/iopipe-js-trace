@@ -1,6 +1,6 @@
 import Perf from 'performance-node';
 
-import pkg from '../package';
+import pkg from '../package.json'; // eslint-disable-line import/extensions
 import { addToReport, addHttpTracesToReport } from './addToReport';
 import { wrap as httpWrap, unwrap as httpUnwrap } from './shimmerHttp';
 

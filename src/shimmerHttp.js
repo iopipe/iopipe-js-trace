@@ -101,7 +101,6 @@ function getResDataObject(res) {
 const defaultKeysToRecord = new Map(
   [
     'request.hash',
-    'request.headers.accept-encoding',
     'request.headers.user-agent',
     'request.hostname',
     'request.method',
@@ -111,17 +110,9 @@ const defaultKeysToRecord = new Map(
     'request.protocol',
     'request.query',
     'request.url',
-    'response.headers.age',
-    'response.headers.cache-control',
-    'response.headers.connection',
-    'response.headers.content-encoding',
     'response.headers.content-length',
     'response.headers.content-type',
-    'response.headers.date',
-    'response.headers.etag',
     'response.headers.server',
-    'response.headers.strict-transport-security',
-    'response.headers.vary',
     'response.statusCode',
     'response.statusMessage'
   ].map(s => [s])
