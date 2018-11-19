@@ -189,7 +189,7 @@ test('Wrap works with https.request(opts)', done => {
     .end();
 });
 
-test('Wrap works with async got(string)', async () => {
+xtest('Wrap works with async got(string)', async () => {
   const timeline = new Perf({ timestamp: true });
   const data = {};
   wrap({ timeline, data });
@@ -213,7 +213,7 @@ test('Wrap works with async got(string)', async () => {
   expect(ids).toHaveLength(2);
 });
 
-test('Wrap works with async got(string) and filter', async () => {
+xtest('Wrap works with async got(string) and filter', async () => {
   const timeline = new Perf({ timestamp: true });
   const data = {};
   wrap({
