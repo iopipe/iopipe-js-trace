@@ -16,7 +16,7 @@ function getBooleanFromEnv(key = '') {
 }
 
 function getConfig(config = {}) {
-  const { autoMeasure = true, autoHttp = {} } = config;
+  const { autoMeasure = true, autoHttp = { enabled: true } } = config;
   return {
     autoHttp: {
       enabled:
