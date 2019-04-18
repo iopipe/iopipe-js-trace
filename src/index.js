@@ -1,8 +1,13 @@
 import Perf from 'performance-node';
 
 import pkg from '../package.json'; // eslint-disable-line import/extensions
-import { addToReport, addHttpTracesToReport } from './addToReport';
+import {
+  addToReport,
+  addHttpTracesToReport,
+  addRedisTracesToReport
+} from './addToReport';
 import { wrap as httpWrap, unwrap as httpUnwrap } from './shimmerHttp';
+import { wrap as redisWrap, unwrap as redisUnwrap } from './shimmerRedis';
 
 function getBooleanFromEnv(key = '') {
   const isFalsey =
@@ -16,7 +21,11 @@ function getBooleanFromEnv(key = '') {
 }
 
 function getConfig(config = {}) {
-  const { autoMeasure = true, autoHttp = { enabled: true } } = config;
+  const {
+    autoMeasure = true,
+    autoHttp = { enabled: true },
+    autoRedis = { enabled: true } // might need to be false to avoid redis errors. Then how to turn on?
+  } = config;
   return {
     autoHttp: {
       enabled:
@@ -24,6 +33,13 @@ function getConfig(config = {}) {
           ? autoHttp.enabled
           : getBooleanFromEnv('IOPIPE_TRACE_AUTO_HTTP_ENABLED'),
       filter: autoHttp.filter
+    },
+    autoDb: {
+      enabled:
+        typeof autoRedis.enabled === 'boolean'
+          ? autoRedis.enabled
+          : getBooleanFromEnv('IOPIPE_TRACE_AUTO_REDIS_ENABLED'),
+      filter: autoRedis.filter
     },
     autoMeasure
   };
@@ -63,6 +79,13 @@ function recordAutoHttpData(plugin) {
   plugin.autoHttpData.data = {};
 }
 
+function recordAutoRedisData(plugin) {
+  addTimelineMeasures(plugin, plugin.autoRedisData.timeline);
+  addRedisTracesToReport(plugin);
+  plugin.autoRedisData.timeline.clear();
+  plugin.autoRedisData.data = {};
+}
+
 class TracePlugin {
   constructor(config = {}, invocationInstance) {
     this.invocationInstance = invocationInstance;
@@ -83,6 +106,16 @@ class TracePlugin {
       };
       httpWrap(this.autoHttpData);
     }
+    if (this.config.autoDb.enabled) {
+      this.autoRedisData = {
+        timeline: new Perf({ timestamp: true }),
+        // object to store data about traces that will make it into the report later
+        data: {},
+        config: this.config.autoDb
+      };
+      redisWrap(this.autoRedisData);
+    }
+
     return this;
   }
   get meta() {
@@ -95,10 +128,14 @@ class TracePlugin {
     };
     this.invocationInstance.context.iopipe.measure = this.measure.bind(this);
     this.invocationInstance.report.report.httpTraceEntries = [];
+    this.invocationInstance.report.report.dbTraceEntries = [];
   }
   postInvoke() {
     if (this.config.autoHttp.enabled) {
       httpUnwrap();
+    }
+    if (this.config.autoDb.enabled) {
+      redisUnwrap();
     }
     if (
       typeof this.invocationInstance.context.iopipe.label === 'function' &&
@@ -113,6 +150,9 @@ class TracePlugin {
     }
     if (this.config.autoHttp.enabled) {
       recordAutoHttpData(this);
+    }
+    if (this.config.autoDb.enabled) {
+      recordAutoRedisData(this);
     }
     addToReport(this);
   }

@@ -34,3 +34,20 @@ export function addHttpTracesToReport(plugin) {
     report.httpTraceEntries.push(obj);
   });
 }
+
+export function addRedisTracesToReport(plugin) {
+  const { autoRedisData: { timeline = {} } } = plugin;
+  const { report: { report = {} } = {} } = plugin.invocationInstance;
+  Object.keys(plugin.autoRedisData.data).forEach(id => {
+    const obj = unflatten(plugin.autoRedisData.data[id] || {});
+    // use start mark for startTime in case the call did not finish / no callback
+    // and we do not have a measurement
+    const [startMark = {}] = timeline.getEntriesByName(`start:${id}`) || [];
+    const [measureMark = {}] = timeline.getEntriesByName(`measure:${id}`) || [];
+    obj.timestamp = startMark.timestamp || 0;
+    obj.startTime = startMark.startTime || 0;
+    obj.duration = measureMark.duration || 0;
+
+    report.dbTraceEntries.push(obj);
+  });
+}
