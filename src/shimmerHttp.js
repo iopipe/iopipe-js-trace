@@ -120,7 +120,7 @@ const defaultKeysToRecord = new Map(
 
 function filterData(config = {}, completeHttpObj = {}) {
   const whitelistedObject = pickBy(completeHttpObj, (v, k) =>
-    defaultKeysToRecord.has(k)
+    defaultKeysToRecord.has(k.toLowerCase())
   );
   if (typeof config.filter === 'function') {
     return config.filter(whitelistedObject, completeHttpObj);
