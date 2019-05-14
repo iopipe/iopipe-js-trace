@@ -24,7 +24,7 @@ function getConfig(config = {}) {
   const {
     autoMeasure = true,
     autoHttp = { enabled: true },
-    autoRedis = { enabled: true } // might need to be false to avoid redis errors. Then how to turn on?
+    autoRedis = { enabled: false } // might need to be false to avoid redis errors. Then how to turn on?
   } = config;
   return {
     autoHttp: {
