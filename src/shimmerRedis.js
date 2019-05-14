@@ -65,6 +65,21 @@ const filteredInfoResponse = str => {
   return obj;
 };
 
+function sanitizeResponse(response) {
+  // Instead of transmitting full db response, just report number of results, if available.
+  // 0 for null/false, 1 for single object or non-object, array length for array.
+  if (!response) {
+    return 0;
+  }
+  if (typeof response !== 'object') {
+    return 1;
+  }
+  if (response.length) {
+    return response.length
+  }
+  return 1;
+}
+
 function sanitizeArgs(args) {
   // allows the first key to be included, but hashes the rest for privacy
   const newArray = [];
@@ -110,13 +125,15 @@ function wrap({ timeline, data = {} } = {}) {
 
       data[id] = {
         name,
-        args: sanitizeArgs(args)
+        args: sanitizeArgs(args),
+        dbType: 'Redis'
       };
 
       if (typeof cb === 'function' && !cb.__iopipeTraceId) {
         timeline.mark(`start:${id}`);
         this.callback = function wrappedCallback(err, response) {
-          data[id].response = filteredInfoResponse(response);
+
+          data[id].result = filteredInfoResponse(response);
           data[id].command = command;
 
           if (err) {
@@ -138,7 +155,8 @@ function wrap({ timeline, data = {} } = {}) {
       const { name, args } = command;
       data[id] = {
         name,
-        args: sanitizeArgs(args)
+        args: sanitizeArgs(args),
+        dbType: 'Redis'
       };
 
       timeline.mark(`start:${id}`);
