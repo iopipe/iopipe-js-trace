@@ -6,8 +6,8 @@
 Create marks and measures for arbitrary units of time. Measure latency of database calls, third party requests, or code blocks and visualize them in [IOpipe](https://iopipe.com)!
 
 ## Requirements
-- Node >= `4.3.2`
-- NPM >= `2.14.12`
+- Node >= `8.10.0`
+- NPM >= `6.9.0`
 - [IOpipe](https://github.com/iopipe/iopipe-js) >= `1.x`
 
 ## Install
