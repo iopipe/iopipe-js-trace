@@ -24,7 +24,8 @@ function timelineExpect({ timeline, data }) {
   expect(dataValues.length).toBeGreaterThan(0);
   const [obj] = dataValues;
   expect(obj.name).toBe('set');
-  expect(obj.args.length).toBeGreaterThan(0);
+  expect(obj.request).toBeDefined();
+  expect(obj.request.args.length).toBeGreaterThan(0);
 
   const entries = timeline.getEntries();
   expect(entries.length).toBeGreaterThan(0);
@@ -47,7 +48,6 @@ test('Basic Redis mock works as normal if wrap is not called', () => {
 
 xtest('Redis works as normal if wrap is not called', done => {
   const redis = new Redis();
-
   const expectedStr = 'iopipe';
   expect(redis.set.__wrapped).toBeUndefined();
 
@@ -101,7 +101,7 @@ describe('Wrapping Redis', () => {
 
       wrap({ timeline, data });
 
-      const redis = new Redis();
+      const redis = new Redis({ host: '0.0.0.0', connectionName: 'Test 1' });
 
       expect(redis.sendCommand.__wrapped).toBeDefined();
 
@@ -125,7 +125,7 @@ describe('Wrapping Redis', () => {
 
       wrap({ timeline, data });
 
-      const redis = new Redis();
+      const redis = new Redis({ host: '127.0.0.1', connectionName: 'Test 2' });
 
       expect(redis.sendCommand.__wrapped).toBeDefined();
 
@@ -158,7 +158,7 @@ describe('Wrapping Redis', () => {
 
       wrap({ timeline, data });
 
-      const redis = new Redis();
+      const redis = new Redis({ host: 'localhost', connectionName: 'Test 3' });
 
       expect(redis.sendCommand.__wrapped).toBeDefined();
 

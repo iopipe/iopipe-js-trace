@@ -11,7 +11,7 @@ const debug = debuglog('@iopipe/trace');
 /*eslint-disable func-name-matching */
 /*eslint-disable prefer-rest-params */
 
-const defaultInfoKeys = new Map(
+const filteredInfoKeys = new Map(
   [
     'redis_version',
     'redis_build_id',
@@ -46,6 +46,38 @@ const defaultInfoKeys = new Map(
 
 const createId = () => `redis-${uuid()}`;
 
+const createHash = inputToHash => {
+  let hashInput;
+  if (typeof inputToHash === 'object') {
+    hashInput = JSON.stringify(inputToHash);
+  } else {
+    hashInput = inputToHash;
+  }
+  const hash = crypto.createHash('sha256');
+  const input = Buffer.from(hashInput, 'base64');
+  hash.update(input);
+  return hash.digest('hex');
+};
+
+const filterRequest = (command, options) => {
+  const { name, args } = command;
+  let hostname, port, connectionName;
+  if (options) {
+    hostname = options.host;
+    port = options.port;
+    connectionName = options.connectionName;
+  }
+
+  return {
+    hash: createHash(command),
+    command: name,
+    args: sanitizeArgs(args),
+    hostname,
+    port,
+    connectionName
+  };
+};
+
 const filteredInfoResponse = str => {
   const obj = {};
   if (typeof str !== 'string') {
@@ -57,7 +89,7 @@ const filteredInfoResponse = str => {
       return null;
     }
     const kv = val.split(':');
-    if (defaultInfoKeys.has(kv[0])) {
+    if (filteredInfoKeys.has(kv[0])) {
       obj[kv[0]] = kv[1];
     }
     return kv;
@@ -65,7 +97,7 @@ const filteredInfoResponse = str => {
   return obj;
 };
 
-function sanitizeResponse(response) {
+function filteredResponse(response) {
   // Instead of transmitting full db response, just report number of results, if available.
   // 0 for null/false, 1 for single object or non-object, array length for array.
   if (!response) {
@@ -75,7 +107,7 @@ function sanitizeResponse(response) {
     return 1;
   }
   if (response.length) {
-    return response.length
+    return response.length;
   }
   return 1;
 }
@@ -87,10 +119,7 @@ function sanitizeArgs(args) {
     newArray.push(args[0]);
   }
   if (args.length > 1) {
-    const hash = crypto.createHash('sha256');
-    const input = Buffer.from(args.join(), 'base64');
-    hash.update(input);
-    newArray.push(hash.digest('hex'));
+    newArray.push(createHash(args.join()));
   }
   return newArray;
 }
@@ -121,20 +150,21 @@ function wrap({ timeline, data = {} } = {}) {
       const command = this;
       const cb = this.callback;
       const id = createId();
-      const { name, args } = command;
-
+      const { name } = command;
       data[id] = {
         name,
-        args: sanitizeArgs(args),
-        dbType: 'Redis'
+        dbType: 'Redis',
+        request: filterRequest(command)
       };
 
       if (typeof cb === 'function' && !cb.__iopipeTraceId) {
         timeline.mark(`start:${id}`);
         this.callback = function wrappedCallback(err, response) {
-
-          data[id].result = filteredInfoResponse(response);
-          data[id].command = command;
+          if (name === 'info') {
+            data[id].response = filteredInfoResponse(response);
+          } else {
+            data[id].response = filteredResponse(response);
+          }
 
           if (err) {
             data[id].error = err.message;
@@ -151,12 +181,14 @@ function wrap({ timeline, data = {} } = {}) {
   }
   function wrapSendCommand(original) {
     return function wrappedSendCommand(command) {
+      const context = this;
       const id = createId();
-      const { name, args } = command;
+      const { name } = command;
+
       data[id] = {
         name,
-        args: sanitizeArgs(args),
-        dbType: 'Redis'
+        dbType: 'Redis',
+        request: filterRequest(command, context)
       };
 
       timeline.mark(`start:${id}`);
