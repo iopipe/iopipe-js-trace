@@ -35,11 +35,11 @@ export function addHttpTracesToReport(plugin) {
   });
 }
 
-export function addRedisTracesToReport(plugin) {
-  const { autoRedisData: { timeline = {} } } = plugin;
+export function addIoRedisTracesToReport(plugin) {
+  const { autoIoRedisData: { timeline = {} } } = plugin;
   const { report: { report = {} } = {} } = plugin.invocationInstance;
-  Object.keys(plugin.autoRedisData.data).forEach(id => {
-    const obj = unflatten(plugin.autoRedisData.data[id] || {});
+  Object.keys(plugin.autoIoRedisData.data).forEach(id => {
+    const obj = unflatten(plugin.autoIoRedisData.data[id] || {});
     // use start mark for startTime in case the call did not finish / no callback
     // and we do not have a measurement
     const [startMark = {}] = timeline.getEntriesByName(`start:${id}`) || [];

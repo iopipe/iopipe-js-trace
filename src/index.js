@@ -4,7 +4,7 @@ import pkg from '../package.json'; // eslint-disable-line import/extensions
 import {
   addToReport,
   addHttpTracesToReport,
-  addRedisTracesToReport
+  addIoRedisTracesToReport
 } from './addToReport';
 import { wrap as httpWrap, unwrap as httpUnwrap } from './plugins/https';
 import {
@@ -84,7 +84,7 @@ function recordAutoHttpData(plugin) {
 
 function recordAutoIoRedisData(plugin) {
   addTimelineMeasures(plugin, plugin.autoIoRedisData.timeline);
-  addRedisTracesToReport(plugin);
+  addIoRedisTracesToReport(plugin);
   plugin.autoIoRedisData.timeline.clear();
   plugin.autoIoRedisData.data = {};
 }
