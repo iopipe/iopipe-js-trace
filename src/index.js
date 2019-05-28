@@ -24,7 +24,7 @@ function getConfig(config = {}) {
   const {
     autoMeasure = true,
     autoHttp = { enabled: true },
-    autoRedis = { enabled: false } // might need to be false to avoid redis errors. Then how to turn on?
+    autoRedis = { enabled: getBooleanFromEnv('IOPIPE_TRACE_IOREDIS') }
   } = config;
   return {
     autoHttp: {
@@ -38,7 +38,7 @@ function getConfig(config = {}) {
       enabled:
         typeof autoRedis.enabled === 'boolean'
           ? autoRedis.enabled
-          : getBooleanFromEnv('IOPIPE_TRACE_AUTO_REDIS_ENABLED'),
+          : getBooleanFromEnv('IOPIPE_TRACE_IOREDIS'),
       filter: autoRedis.filter
     },
     autoMeasure

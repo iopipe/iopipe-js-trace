@@ -59,13 +59,13 @@ const createHash = inputToHash => {
   return hash.digest('hex');
 };
 
-const filterRequest = (command, options) => {
+const filterRequest = (command, context) => {
   const { name, args } = command;
   let hostname, port, connectionName;
-  if (options) {
-    hostname = options.host;
-    port = options.port;
-    connectionName = options.connectionName;
+  if (context && context.options) {
+    hostname = context.options.host;
+    port = context.options.port;
+    connectionName = context.options.connectionName;
   }
 
   return {
