@@ -6,8 +6,8 @@ import {
   addHttpTracesToReport,
   addRedisTracesToReport
 } from './addToReport';
-import { wrap as httpWrap, unwrap as httpUnwrap } from './shimmerHttp';
-import { wrap as redisWrap, unwrap as redisUnwrap } from './shimmerRedis';
+import { wrap as httpWrap, unwrap as httpUnwrap } from './plugins/https';
+import { wrap as ioRedisWrap, unwrap as ioRedisUnwrap } from './plugins/ioredis';
 
 function getBooleanFromEnv(key = '') {
   const isFalsey =
@@ -24,7 +24,7 @@ function getConfig(config = {}) {
   const {
     autoMeasure = true,
     autoHttp = { enabled: true },
-    autoRedis = { enabled: getBooleanFromEnv('IOPIPE_TRACE_IOREDIS') }
+    autoIoRedis = { enabled: getBooleanFromEnv('IOPIPE_TRACE_IOREDIS') }
   } = config;
   return {
     autoHttp: {
@@ -36,10 +36,10 @@ function getConfig(config = {}) {
     },
     autoDb: {
       enabled:
-        typeof autoRedis.enabled === 'boolean'
-          ? autoRedis.enabled
+        typeof autoIoRedis.enabled === 'boolean'
+          ? autoIoRedis.enabled
           : getBooleanFromEnv('IOPIPE_TRACE_IOREDIS'),
-      filter: autoRedis.filter
+      filter: autoIoRedis.filter
     },
     autoMeasure
   };
@@ -79,11 +79,11 @@ function recordAutoHttpData(plugin) {
   plugin.autoHttpData.data = {};
 }
 
-function recordAutoRedisData(plugin) {
-  addTimelineMeasures(plugin, plugin.autoRedisData.timeline);
+function recordAutoIoRedisData(plugin) {
+  addTimelineMeasures(plugin, plugin.autoIoRedisData.timeline);
   addRedisTracesToReport(plugin);
-  plugin.autoRedisData.timeline.clear();
-  plugin.autoRedisData.data = {};
+  plugin.autoIoRedisData.timeline.clear();
+  plugin.autoIoRedisData.data = {};
 }
 
 class TracePlugin {
@@ -107,13 +107,13 @@ class TracePlugin {
       httpWrap(this.autoHttpData);
     }
     if (this.config.autoDb.enabled) {
-      this.autoRedisData = {
+      this.autoIoRedisData = {
         timeline: new Perf({ timestamp: true }),
         // object to store data about traces that will make it into the report later
         data: {},
         config: this.config.autoDb
       };
-      redisWrap(this.autoRedisData);
+      ioRedisWrap(this.autoIoRedisData);
     }
 
     return this;
@@ -135,7 +135,7 @@ class TracePlugin {
       httpUnwrap();
     }
     if (this.config.autoDb.enabled) {
-      redisUnwrap();
+      ioRedisUnwrap();
     }
     if (
       typeof this.invocationInstance.context.iopipe.label === 'function' &&
@@ -152,7 +152,7 @@ class TracePlugin {
       recordAutoHttpData(this);
     }
     if (this.config.autoDb.enabled) {
-      recordAutoRedisData(this);
+      recordAutoIoRedisData(this);
     }
     addToReport(this);
   }

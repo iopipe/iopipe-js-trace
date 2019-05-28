@@ -3,7 +3,7 @@ import Perf from 'performance-node';
 import superagent from 'superagent';
 import { flatten } from 'flat';
 
-import { wrap, unwrap } from './shimmerHttp';
+import { wrap, unwrap } from './https';
 
 function iopipeComExpect(
   res,

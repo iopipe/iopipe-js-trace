@@ -11,7 +11,7 @@
     "prepare": "npm run build",
     "release": "iopipe-scripts release",
     "test": "iopipe-scripts test",
-    "testRedis": "yarn run jest src/shimmerRedis.test.js --forceExit --verbose",
+    "testRedis": "yarn run jest src/plugins/ioredis.test.js --forceExit --verbose",
     "validate": "iopipe-scripts validate"
   },
   "repository": {

@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import Perf from 'performance-node';
 import Redis from 'ioredis';
-import { wrap, unwrap } from './shimmerRedis';
+import { wrap, unwrap } from './ioredis';
 
 jest.mock('ioredis');
 

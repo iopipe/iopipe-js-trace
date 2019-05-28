@@ -5,7 +5,7 @@ import mockContext from 'aws-lambda-mock-context';
 import Perf from 'performance-node';
 
 import pkg from '../package';
-import { unwrap } from './shimmerHttp';
+import { unwrap } from './plugins/https';
 
 const tracePlugin = require('.');
 
