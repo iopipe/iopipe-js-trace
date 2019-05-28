@@ -7,7 +7,10 @@ import {
   addRedisTracesToReport
 } from './addToReport';
 import { wrap as httpWrap, unwrap as httpUnwrap } from './plugins/https';
-import { wrap as ioRedisWrap, unwrap as ioRedisUnwrap } from './plugins/ioredis';
+import {
+  wrap as ioRedisWrap,
+  unwrap as ioRedisUnwrap
+} from './plugins/ioredis';
 
 function getBooleanFromEnv(key = '') {
   const isFalsey =
