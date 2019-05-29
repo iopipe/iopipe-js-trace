@@ -37,12 +37,11 @@ function getConfig(config = {}) {
           : getBooleanFromEnv('IOPIPE_TRACE_AUTO_HTTP_ENABLED'),
       filter: autoHttp.filter
     },
-    autoDb: {
+    autoIoRedis: {
       enabled:
         typeof autoIoRedis.enabled === 'boolean'
           ? autoIoRedis.enabled
-          : getBooleanFromEnv('IOPIPE_TRACE_IOREDIS'),
-      filter: autoIoRedis.filter
+          : getBooleanFromEnv('IOPIPE_TRACE_IOREDIS')
     },
     autoMeasure
   };
@@ -109,12 +108,12 @@ class TracePlugin {
       };
       httpWrap(this.autoHttpData);
     }
-    if (this.config.autoDb.enabled) {
+    if (this.config.autoIoRedis.enabled) {
       this.autoIoRedisData = {
         timeline: new Perf({ timestamp: true }),
         // object to store data about traces that will make it into the report later
         data: {},
-        config: this.config.autoDb
+        config: this.config.autoIoRedis
       };
       ioRedisWrap(this.autoIoRedisData);
     }
@@ -137,7 +136,7 @@ class TracePlugin {
     if (this.config.autoHttp.enabled) {
       httpUnwrap();
     }
-    if (this.config.autoDb.enabled) {
+    if (this.config.autoIoRedis.enabled) {
       ioRedisUnwrap();
     }
     if (
@@ -154,7 +153,7 @@ class TracePlugin {
     if (this.config.autoHttp.enabled) {
       recordAutoHttpData(this);
     }
-    if (this.config.autoDb.enabled) {
+    if (this.config.autoIoRedis.enabled) {
       recordAutoIoRedisData(this);
     }
     addToReport(this);

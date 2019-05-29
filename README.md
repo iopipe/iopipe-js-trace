@@ -5,6 +5,8 @@
 
 Create marks and measures for arbitrary units of time. Measure latency of database calls, third party requests, or code blocks and visualize them in [IOpipe](https://iopipe.com)!
 
+Supports automatic tracing of functions using Node's native `http` and `https`, as well as `ioredis`.
+
 ## Requirements
 - Node >= `8.10.0`
 - NPM >= `6.9.0`
@@ -106,6 +108,9 @@ const iopipe = iopipeLib({
   ]
 });
 ```
+#### Automatically trace Redis commands using ioredis
+
+Setting the environment variable `IOPIPE_TRACE_IOREDIS` to `true` for your function will enable automatic traces on Redis commands: the name of the command, name of the host, port, and connection (if defined in your connection options), and a hash of the command's arguments.  (We hash the arguments to protect the privacy of your data, while still allowing you to find patterns in how your function uses Redis.)
 
 #### `autoMeasure` (bool: optional = true)
 
