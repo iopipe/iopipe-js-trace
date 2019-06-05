@@ -25,7 +25,7 @@ function timelineExpect({ timeline, data }) {
   const [obj] = dataValues;
   expect(obj.name).toBe('set');
   expect(obj.request).toBeDefined();
-  expect(obj.request.args.length).toBeGreaterThan(0);
+  expect(obj.request.key).toBeDefined();
 
   const entries = timeline.getEntries();
   expect(entries.length).toBeGreaterThan(0);

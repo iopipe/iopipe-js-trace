@@ -40,13 +40,8 @@ function wrap({ timeline, data = {} } = {}) {
 
   if (!Redis.__iopipeShimmer) {
     //Redis.Command &&
-    shimmer.wrap(
-      Redis.Command.prototype,
-      'initPromise',
-      wrapPromise
-    );
+    shimmer.wrap(Redis.Command.prototype, 'initPromise', wrapPromise);
     shimmer.wrap(Redis.prototype, 'sendCommand', wrapSendCommand);
-
     Redis.__iopipeShimmer = true;
   }
 
@@ -66,8 +61,7 @@ function wrap({ timeline, data = {} } = {}) {
 
       if (typeof cb === 'function' && !cb.__iopipeTraceId) {
         timeline.mark(`start:${id}`);
-        this.callback = function wrappedCallback(err, response) {
-
+        this.callback = function wrappedCallback(err) {
           if (err) {
             data[id].error = err.message;
             data[id].errorStack = err.stack;

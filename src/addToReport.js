@@ -10,7 +10,10 @@ export function addToReport(pluginInstance, timelineArg) {
   const { timeline, invocationInstance } = pluginInstance;
   const entries = (timelineArg || timeline).getEntries();
   const { report } = invocationInstance.report;
-  report.performanceEntries = [...(report.performanceEntries || []), ...entries];
+  report.performanceEntries = [
+    ...(report.performanceEntries || []),
+    ...entries
+  ];
 }
 
 export function addHttpTracesToReport(plugin) {
