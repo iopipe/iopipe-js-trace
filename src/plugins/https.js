@@ -187,7 +187,7 @@ function wrapHttpRequest({
 function wrap({ timeline, data = {}, config = {} } = {}) {
   if (!(timeline instanceof Perf)) {
     debug(
-      'Timeline passed to shimmerHttp.wrap not an instance of performance-node. Skipping.'
+      'Timeline passed to plugins/https.wrap not an instance of performance-node. Skipping.'
     );
     return false;
   }

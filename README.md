@@ -108,9 +108,9 @@ const iopipe = iopipeLib({
   ]
 });
 ```
-#### Automatically trace Redis commands using ioredis
+#### `autoIoRedis` Automatically trace Redis commands using ioredis
 
-Setting the environment variable `IOPIPE_TRACE_IOREDIS` to `true` for your function will enable automatic traces on Redis commands: the name of the command, name of the host, port, and connection (if defined in your connection options), and a hash of the command's arguments.  (We hash the arguments to protect the privacy of your data, while still allowing you to find patterns in how your function uses Redis.)
+Setting the environment variable `IOPIPE_TRACE_IOREDIS` to `true` for your function will enable automatic traces on Redis commands: the name of the command, name of the host, port, and connection (if defined in your connection options), and the key being written or read.  Commands batched with multi/exec are traced individually, so you can measure individual performance within batch operations.
 
 #### `autoMeasure` (bool: optional = true)
 

@@ -33,7 +33,7 @@ const filterRequest = (command, context) => {
 function wrap({ timeline, data = {} } = {}) {
   if (!(timeline instanceof Perf)) {
     debug(
-      'Timeline passed to shimmerRedis.wrap not an instance of performance-node. Skipping.'
+      'Timeline passed to plugins/ioredis.wrap not an instance of performance-node. Skipping.'
     );
     return false;
   }
