@@ -1,8 +1,16 @@
 import Perf from 'performance-node';
 
 import pkg from '../package.json'; // eslint-disable-line import/extensions
-import { addToReport, addHttpTracesToReport } from './addToReport';
-import { wrap as httpWrap, unwrap as httpUnwrap } from './shimmerHttp';
+import {
+  addToReport,
+  addHttpTracesToReport,
+  addIoRedisTracesToReport
+} from './addToReport';
+import { wrap as httpWrap, unwrap as httpUnwrap } from './plugins/https';
+import {
+  wrap as ioRedisWrap,
+  unwrap as ioRedisUnwrap
+} from './plugins/ioredis';
 
 function getBooleanFromEnv(key = '') {
   const isFalsey =
@@ -16,7 +24,11 @@ function getBooleanFromEnv(key = '') {
 }
 
 function getConfig(config = {}) {
-  const { autoMeasure = true, autoHttp = { enabled: true } } = config;
+  const {
+    autoMeasure = true,
+    autoHttp = { enabled: true },
+    autoIoRedis = { enabled: getBooleanFromEnv('IOPIPE_TRACE_IOREDIS') }
+  } = config;
   return {
     autoHttp: {
       enabled:
@@ -24,6 +36,12 @@ function getConfig(config = {}) {
           ? autoHttp.enabled
           : getBooleanFromEnv('IOPIPE_TRACE_AUTO_HTTP_ENABLED'),
       filter: autoHttp.filter
+    },
+    autoIoRedis: {
+      enabled:
+        typeof autoIoRedis.enabled === 'boolean'
+          ? autoIoRedis.enabled
+          : getBooleanFromEnv('IOPIPE_TRACE_IOREDIS')
     },
     autoMeasure
   };
@@ -63,6 +81,13 @@ function recordAutoHttpData(plugin) {
   plugin.autoHttpData.data = {};
 }
 
+function recordAutoIoRedisData(plugin) {
+  addTimelineMeasures(plugin, plugin.autoIoRedisData.timeline);
+  addIoRedisTracesToReport(plugin);
+  plugin.autoIoRedisData.timeline.clear();
+  plugin.autoIoRedisData.data = {};
+}
+
 class TracePlugin {
   constructor(config = {}, invocationInstance) {
     this.invocationInstance = invocationInstance;
@@ -83,6 +108,16 @@ class TracePlugin {
       };
       httpWrap(this.autoHttpData);
     }
+    if (this.config.autoIoRedis.enabled) {
+      this.autoIoRedisData = {
+        timeline: new Perf({ timestamp: true }),
+        // object to store data about traces that will make it into the report later
+        data: {},
+        config: this.config.autoIoRedis
+      };
+      ioRedisWrap(this.autoIoRedisData);
+    }
+
     return this;
   }
   get meta() {
@@ -95,10 +130,14 @@ class TracePlugin {
     };
     this.invocationInstance.context.iopipe.measure = this.measure.bind(this);
     this.invocationInstance.report.report.httpTraceEntries = [];
+    this.invocationInstance.report.report.dbTraceEntries = [];
   }
   postInvoke() {
     if (this.config.autoHttp.enabled) {
       httpUnwrap();
+    }
+    if (this.config.autoIoRedis.enabled) {
+      ioRedisUnwrap();
     }
     if (
       typeof this.invocationInstance.context.iopipe.label === 'function' &&
@@ -113,6 +152,9 @@ class TracePlugin {
     }
     if (this.config.autoHttp.enabled) {
       recordAutoHttpData(this);
+    }
+    if (this.config.autoIoRedis.enabled) {
+      recordAutoIoRedisData(this);
     }
     addToReport(this);
   }
