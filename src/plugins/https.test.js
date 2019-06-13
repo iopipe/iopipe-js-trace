@@ -25,6 +25,9 @@ function iopipeComExpect(
   Object.keys(reqHeaders).forEach(header => {
     expect(obj[`request.${header}`]).toBe(reqHeaders[header]);
   });
+  expect(obj['request.headers.Authorization']).toBeUndefined();
+  expect(obj['request.headers.authorization']).toBeUndefined();
+
   expect(obj['response.headers.content-type']).toBe(contentType);
   expect(obj['response.statusCode']).toBe(statusCode);
 

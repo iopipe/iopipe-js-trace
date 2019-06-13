@@ -39,9 +39,14 @@ function wrap({ timeline, data = {} } = {}) {
   }
 
   if (!Redis.__iopipeShimmer) {
-    //Redis.Command &&
-    shimmer.wrap(Redis.Command.prototype, 'initPromise', wrapPromise);
-    shimmer.wrap(Redis.prototype, 'sendCommand', wrapSendCommand);
+    if (process.env.IOPIPE_TRACE_IOREDIS_INITPROMISE) {
+      shimmer.wrap(
+        Redis.Command && Redis.Command.prototype,
+        'initPromise',
+        wrapPromise
+      );
+    }
+    shimmer.wrap(Redis && Redis.prototype, 'sendCommand', wrapSendCommand);
     Redis.__iopipeShimmer = true;
   }
 
@@ -66,7 +71,6 @@ function wrap({ timeline, data = {} } = {}) {
             data[id].error = err.message;
             data[id].errorStack = err.stack;
           }
-
           timeline.mark(`end:${id}`);
           return cb.apply(this, arguments);
         };
@@ -126,8 +130,10 @@ function wrap({ timeline, data = {} } = {}) {
 }
 
 function unwrap() {
-  shimmer.unwrap(Redis.Command.prototype, 'initPromise');
-  shimmer.unwrap(Redis.prototype, 'sendCommand');
+  if (process.env.IOPIPE_TRACE_IOREDIS_INITPROMISE) {
+    shimmer.unwrap(Redis.Command && Redis.Command.prototype, 'initPromise');
+  }
+  shimmer.unwrap(Redis && Redis.prototype, 'sendCommand');
   delete Redis.__iopipeShimmer;
 }
 
