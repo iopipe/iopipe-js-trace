@@ -14,19 +14,18 @@ const createId = () => `redis-${uuid()}`;
 
 const filterRequest = (command, context) => {
   const { name, args } = command;
-  let hostname, port, connectionName;
-  if (context && context.options) {
-    hostname = context.options.host;
-    port = context.options.port;
-    connectionName = context.options.connectionName;
+  if (!context) {
+    return null;
   }
+  const { hostname, port, connectionName, db } = context.options;
 
   return {
     command: name,
     key: args[0] ? args[0] : null,
     hostname,
     port,
-    connectionName
+    connectionName,
+    db
   };
 };
 
