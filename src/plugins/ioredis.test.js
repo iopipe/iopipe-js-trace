@@ -69,7 +69,7 @@ test('Bails if timeline is not instance of performance-node', () => {
   expect(bool).toBe(false);
 });
 
-describe('Wrapping Redis', () => {
+describe('Wrapping Redis Mock', () => {
   afterEach(() => {
     unwrap();
   });
@@ -92,8 +92,14 @@ describe('Wrapping Redis', () => {
 
     // not doing timelineExpect because mock doesn't affect timeline
   });
+});
 
-  xtest(
+xdescribe('Wrapping Redis', () => {
+  afterEach(() => {
+    unwrap();
+  });
+
+  test(
     'Wrap works with redis.set and redis.get using async/await syntax',
     async () => {
       const timeline = new Perf({ timestamp: true });
@@ -117,7 +123,7 @@ describe('Wrapping Redis', () => {
     15000
   );
 
-  xtest(
+  test(
     'Wrap works with redis.set/get using promise syntax',
     async () => {
       const timeline = new Perf({ timestamp: true });
@@ -150,7 +156,7 @@ describe('Wrapping Redis', () => {
     15000
   );
 
-  xtest(
+  test(
     'Wrap works with redis.set/get using callback syntax',
     done => {
       const timeline = new Perf({ timestamp: true });

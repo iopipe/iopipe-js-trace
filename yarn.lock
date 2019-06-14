@@ -103,6 +103,7 @@
 "@iopipe/scripts@^1.4.1":
   version "1.4.1"
   resolved "https://registry.yarnpkg.com/@iopipe/scripts/-/scripts-1.4.1.tgz#67c5012dfbc4d43875683786f450ebac9ed20117"
+  integrity sha512-sKuF5fV1N1icRgX0It9rSLICYAstCjBA4TcfzZdVNdEXpDKUbWvgiozrQgH1WMGgeudqs8dbEaEiBACaCRl+eQ==
   dependencies:
     "@iopipe/eslint-config-iopipe" "1.0.2"
     "@ljharb/eslint-config" "^12.2.1"
