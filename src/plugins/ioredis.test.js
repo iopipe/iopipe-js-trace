@@ -110,7 +110,7 @@ xdescribe('Wrapping Redis', () => {
       const redis = new Redis({
         host: '0.0.0.0',
         connectionName: 'Test 1',
-        db: 2
+        db: 1
       });
 
       expect(redis.sendCommand.__wrapped).toBeDefined();
