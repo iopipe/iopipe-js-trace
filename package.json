@@ -11,7 +11,6 @@
     "prepare": "npm run build",
     "release": "iopipe-scripts release",
     "test": "iopipe-scripts test",
-    "testRedis": "yarn run jest src/plugins/ioredis.test.js --forceExit --verbose",
     "validate": "iopipe-scripts validate"
   },
   "repository": {
@@ -36,21 +35,21 @@
   },
   "homepage": "https://github.com/iopipe/iopipe-plugin-trace#readme",
   "devDependencies": {
-    "@iopipe/core": "^1.x",
+    "@iopipe/core": "^1",
     "@iopipe/scripts": "^1.4.1",
     "aws-lambda-mock-context": "^3.0.0",
     "delay": "^2.0.0",
     "got": "^8.3.1",
+    "ioredis": "^4",
     "lodash": "^4.17.4",
+    "redis": "^2",
     "superagent": "^3.8.3"
   },
   "dependencies": {
     "flat": "^4.0.0",
-    "ioredis": "^4.9.0",
     "isarray": "^2.0.4",
     "lodash.pickby": "^4.6.0",
-    "performance-node": "^0.2.0",
-    "semver": "^6.0.0",
+    "performance-node": "^0",
     "shimmer": "^1.2.1",
     "uuid": "^3.2.1"
   },
