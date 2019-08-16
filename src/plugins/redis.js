@@ -89,12 +89,9 @@ function wrap({ timeline, data = {} } = {}) {
       const id = createId();
       const cb = cmd.callback;
 
-      if (!cmd.__iopipeTraceId) {
-        // console.log('applying id to command!', id);
+      if (!data[id] && !cmd.__iopipeTraceId) {
         cmd.__iopipeTraceId = id;
-      }
 
-      if (!data[id]) {
         data[id] = {
           name: cmd.command,
           dbType: 'Redis',
@@ -102,12 +99,6 @@ function wrap({ timeline, data = {} } = {}) {
         };
       }
 
-      // console.log('@@@@@');
-      // console.log('timestamp', new Date().getTime());
-      // console.log(id, data[id].name, data[id].request.key);
-      // console.log('cmd,', cmd);
-      // console.log('@@@@@');
-      //
       if (typeof cb === 'function' && !cb.__iopipeTraceId) {
         timeline.mark(`start:${id}`);
 
@@ -116,13 +107,11 @@ function wrap({ timeline, data = {} } = {}) {
             data[id].error = err.message;
             data[id].errorStack = err.stack;
           }
-          //console.log('CALLED!', id, cmd, arguments)
           timeline.mark(`end:${id}`);
           return cb.apply(cmd, arguments);
         };
         cmd.callback.__iopipeTraceId = id;
       }
-
       return original.apply(this, arguments);
     };
   }
