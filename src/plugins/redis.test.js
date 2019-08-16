@@ -20,7 +20,7 @@ const mockSet = (key, val) => {
   return { key: val };
 };
 
-//jest.mock('redis').default;
+jest.mock('redis').default;
 
 function timelineExpect({ timeline, data }) {
   const dataValues = _.values(data);
@@ -36,7 +36,7 @@ function timelineExpect({ timeline, data }) {
   expect(entries[0].name).toMatch(/^start:redis-(.){36}$/);
 }
 
-xtest('Basic Redis mock works as normal if wrap is not called', () => {
+test('Basic Redis mock works as normal if wrap is not called', () => {
   const client = redis.createClient();
   client.set = jest.fn((key, val) => mockSet(key, val));
   client.get = jest.fn(key => mockGet(key));
@@ -49,7 +49,7 @@ xtest('Basic Redis mock works as normal if wrap is not called', () => {
   expect(returnedValue).toBe(expectedStr);
 });
 
-test('Redis works as normal if wrap is not called', done => {
+xtest('Redis works as normal if wrap is not called', done => {
   const client = redis.createClient();
   const expectedStr = 'unwrapped redis';
   expect(client.set.__wrapped).toBeUndefined();
@@ -75,11 +75,15 @@ test('Bails if timeline is not instance of performance-node', () => {
   expect(bool).toBe(false);
 });
 
-xdescribe('Wrapping redis Mock', () => {
+describe('Wrapping redis Mock', () => {
   let client;
 
   afterEach(() => {
     unwrap();
+  });
+
+  afterAll(() => {
+    client.quit();
   });
 
   test('Mocking redis to pass CircleCI', () => {
@@ -103,7 +107,7 @@ xdescribe('Wrapping redis Mock', () => {
   });
 });
 
-describe('Wrapping redis', () => {
+xdescribe('Wrapping redis', () => {
   let client;
 
   afterEach(() => {
