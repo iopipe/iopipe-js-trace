@@ -29,7 +29,7 @@ function timelineExpect({ timeline, data }) {
 
   const entries = timeline.getEntries();
   expect(entries.length).toBeGreaterThan(0);
-  expect(entries[0].name).toMatch(/^start:redis-(.){36}$/);
+  expect(entries[0].name).toMatch(/^start:ioredis-(.){36}$/);
 }
 
 test('Basic Redis mock works as normal if wrap is not called', () => {
@@ -37,7 +37,7 @@ test('Basic Redis mock works as normal if wrap is not called', () => {
   redis.set = jest.fn((key, val) => mockSet(key, val));
   redis.get = jest.fn(key => mockGet(key));
 
-  const expectedStr = 'iopipe';
+  const expectedStr = 'iopipe: ioredis';
   expect(redis.set.__wrapped).toBeUndefined();
 
   redis.set('testString', expectedStr);
@@ -48,7 +48,7 @@ test('Basic Redis mock works as normal if wrap is not called', () => {
 
 xtest('Redis works as normal if wrap is not called', done => {
   const redis = new Redis();
-  const expectedStr = 'iopipe';
+  const expectedStr = 'iopipe: unwrapped ioredis';
   expect(redis.set.__wrapped).toBeUndefined();
 
   redis
@@ -70,8 +70,14 @@ test('Bails if timeline is not instance of performance-node', () => {
 });
 
 describe('Wrapping Redis Mock', () => {
+  let redis;
+
   afterEach(() => {
     unwrap();
+  });
+
+  afterAll(() => {
+    redis.quit();
   });
 
   test('Mocking redis to pass CircleCI', () => {
@@ -80,11 +86,11 @@ describe('Wrapping Redis Mock', () => {
 
     wrap({ timeline, data });
 
-    const redis = new Redis();
+    redis = new Redis();
     redis.set = jest.fn((key, val) => mockSet(key, val));
     redis.get = jest.fn(key => mockGet(key));
 
-    const expectedStr = 'iopipeSecondTest';
+    const expectedStr = 'mock wrapped ioredis';
     redis.set('testString', expectedStr);
 
     const returnedValue = redis.get('testString');
@@ -95,8 +101,17 @@ describe('Wrapping Redis Mock', () => {
 });
 
 xdescribe('Wrapping Redis', () => {
+  let redis;
+
   afterEach(() => {
     unwrap();
+    redis.flushdb();
+  });
+
+  afterAll(() => {
+    redis.flushdb().then(() => {
+      redis.quit();
+    });
   });
 
   test(
@@ -107,7 +122,7 @@ xdescribe('Wrapping Redis', () => {
 
       wrap({ timeline, data });
 
-      const redis = new Redis({
+      redis = new Redis({
         host: '0.0.0.0',
         connectionName: 'Test 1',
         db: 1
@@ -115,7 +130,7 @@ xdescribe('Wrapping Redis', () => {
 
       expect(redis.sendCommand.__wrapped).toBeDefined();
 
-      const expectedStr = 'iopipeSecondTest';
+      const expectedStr = 'wrapped ioredis, async/await';
 
       redis.set('testString', expectedStr);
 
@@ -135,11 +150,11 @@ xdescribe('Wrapping Redis', () => {
 
       wrap({ timeline, data });
 
-      const redis = new Redis({ host: '127.0.0.1', connectionName: 'Test 2' });
+      redis = new Redis({ host: '127.0.0.1', connectionName: 'Test 2', db: 1 });
 
       expect(redis.sendCommand.__wrapped).toBeDefined();
 
-      const expectedStr = 'iopipeThirdTest';
+      const expectedStr = 'wrapped ioredis, promise syntax';
 
       redis.set('testString', expectedStr);
 
@@ -168,11 +183,11 @@ xdescribe('Wrapping Redis', () => {
 
       wrap({ timeline, data });
 
-      const redis = new Redis({ host: 'localhost', connectionName: 'Test 3' });
+      redis = new Redis({ host: 'localhost', connectionName: 'Test 3', db: 1 });
 
       expect(redis.sendCommand.__wrapped).toBeDefined();
 
-      const expectedStr = 'iopipeFourthTest';
+      const expectedStr = 'wrapped ioredis, callback syntax';
       redis.set('testString', expectedStr);
 
       expect(timeline.data).toHaveLength(1);

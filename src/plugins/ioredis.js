@@ -10,7 +10,7 @@ const debug = debuglog('@iopipe/trace');
 /*eslint-disable func-name-matching */
 /*eslint-disable prefer-rest-params */
 
-const createId = () => `redis-${uuid()}`;
+const createId = () => `ioredis-${uuid()}`;
 
 const filterRequest = (command, context) => {
   const { name, args } = command;
@@ -18,7 +18,6 @@ const filterRequest = (command, context) => {
     return null;
   }
   const { hostname, port, connectionName, db } = context.options;
-
   return {
     command: name,
     key: args[0] ? args[0] : null,

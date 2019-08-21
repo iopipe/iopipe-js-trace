@@ -232,7 +232,7 @@ test('autoHttp works with got(url) and options', async () => {
     const result = await context.Promise;
     expect(result).toBe(200);
     const traces = getTracesFromInspectableInv(inspectableInv);
-    // we excluded traces for http calls that have ?exlude=true in url, so only 1 trace total should be present
+    // we excluded traces for http calls that have ?exclude=true in url, so only 1 trace total should be present
     expect(traces).toHaveLength(1);
     expect(traces).toMatchSnapshot();
   } catch (err) {

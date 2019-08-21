@@ -1,16 +1,25 @@
 import Perf from 'performance-node';
 
 import pkg from '../package.json'; // eslint-disable-line import/extensions
-import {
-  addToReport,
-  addHttpTracesToReport,
-  addIoRedisTracesToReport
-} from './addToReport';
-import { wrap as httpWrap, unwrap as httpUnwrap } from './plugins/https';
-import {
-  wrap as ioRedisWrap,
-  unwrap as ioRedisUnwrap
-} from './plugins/ioredis';
+import { addToReport, addTraceData } from './addToReport';
+
+const plugins = {
+  https: {
+    config: 'autoHttp',
+    enabled: true,
+    entries: 'httpTraceEntries'
+  },
+  ioredis: {
+    config: 'autoIoRedis',
+    flag: 'IOPIPE_TRACE_IOREDIS',
+    entries: 'dbTraceEntries'
+  },
+  redis: {
+    config: 'autoRedis',
+    flag: 'IOPIPE_TRACE_REDIS',
+    entries: 'dbTraceEntries'
+  }
+};
 
 function getBooleanFromEnv(key = '') {
   const isFalsey =
@@ -27,7 +36,8 @@ function getConfig(config = {}) {
   const {
     autoMeasure = true,
     autoHttp = { enabled: true },
-    autoIoRedis = { enabled: getBooleanFromEnv('IOPIPE_TRACE_IOREDIS') }
+    autoIoRedis = { enabled: getBooleanFromEnv('IOPIPE_TRACE_IOREDIS') },
+    autoRedis = { enabled: getBooleanFromEnv('IOPIPE_TRACE_REDIS') }
   } = config;
   return {
     autoHttp: {
@@ -42,6 +52,12 @@ function getConfig(config = {}) {
         typeof autoIoRedis.enabled === 'boolean'
           ? autoIoRedis.enabled
           : getBooleanFromEnv('IOPIPE_TRACE_IOREDIS')
+    },
+    autoRedis: {
+      enabled:
+        typeof autoRedis.enabled === 'boolean'
+          ? autoRedis.enabled
+          : getBooleanFromEnv('IOPIPE_TRACE_REDIS')
     },
     autoMeasure
   };
@@ -58,6 +74,7 @@ function addTimelineMeasures(pluginInstance, timelineArg) {
     .map(entry => entry.name);
   // loop through each mark and make sure there is a start and end
   // if so, measure
+  // console.log('NAMES', names);
   names.forEach(name => {
     if (name.match(/^(start):.+/)) {
       const baseName = name.replace(/(start|end):(.+)/, '$2');
@@ -74,18 +91,12 @@ function addTimelineMeasures(pluginInstance, timelineArg) {
   return true;
 }
 
-function recordAutoHttpData(plugin) {
-  addTimelineMeasures(plugin, plugin.autoHttpData.timeline);
-  addHttpTracesToReport(plugin);
-  plugin.autoHttpData.timeline.clear();
-  plugin.autoHttpData.data = {};
-}
-
-function recordAutoIoRedisData(plugin) {
-  addTimelineMeasures(plugin, plugin.autoIoRedisData.timeline);
-  addIoRedisTracesToReport(plugin);
-  plugin.autoIoRedisData.timeline.clear();
-  plugin.autoIoRedisData.data = {};
+function recordData(plugin, type) {
+  const namespace = `${plugins[type].config}Data`;
+  addTimelineMeasures(plugin, plugin[namespace].timeline);
+  addTraceData(plugin, plugins[type]);
+  plugin[namespace].timeline.clear();
+  plugin[namespace].data = {};
 }
 
 class TracePlugin {
@@ -99,24 +110,28 @@ class TracePlugin {
       'post:invoke': this.postInvoke.bind(this),
       'pre:report': this.preReport.bind(this)
     };
-    if (this.config.autoHttp.enabled) {
-      this.autoHttpData = {
-        timeline: new Perf({ timestamp: true }),
-        // object to store data about traces that will make it into the report later
-        data: {},
-        config: this.config.autoHttp
-      };
-      httpWrap(this.autoHttpData);
-    }
-    if (this.config.autoIoRedis.enabled) {
-      this.autoIoRedisData = {
-        timeline: new Perf({ timestamp: true }),
-        // object to store data about traces that will make it into the report later
-        data: {},
-        config: this.config.autoIoRedis
-      };
-      ioRedisWrap(this.autoIoRedisData);
-    }
+
+    const context = this;
+    const pluginKeys = Object.keys(plugins);
+    pluginKeys.forEach(k => {
+      const conf = plugins[k].config;
+      const namespace = `${conf}Data`;
+
+      if (context.config[conf].enabled) {
+        // getting plugin; allows this to be loaded only if enabled.
+        const module = require(`./plugins/${k}`);
+        plugins[k].wrap = module.wrap;
+        plugins[k].unwrap = module.unwrap;
+
+        context[namespace] = {
+          timeline: new Perf({ timestamp: true }),
+          // object to store data about traces that will make it into the report later
+          data: {},
+          config: context.config[conf]
+        };
+        plugins[k].wrap(context[namespace]);
+      }
+    });
 
     return this;
   }
@@ -133,12 +148,17 @@ class TracePlugin {
     this.invocationInstance.report.report.dbTraceEntries = [];
   }
   postInvoke() {
-    if (this.config.autoHttp.enabled) {
-      httpUnwrap();
-    }
-    if (this.config.autoIoRedis.enabled) {
-      ioRedisUnwrap();
-    }
+    const context = this;
+    const pluginKeys = Object.keys(plugins);
+    pluginKeys.forEach(k => {
+      const conf = plugins[k].config;
+      if (context.config[conf].enabled) {
+        if (context.config[conf].enabled) {
+          plugins[k].unwrap();
+        }
+      }
+    });
+
     if (
       typeof this.invocationInstance.context.iopipe.label === 'function' &&
       this.timeline.getEntries().length > 0
@@ -150,12 +170,14 @@ class TracePlugin {
     if (this.config.autoMeasure) {
       addTimelineMeasures(this);
     }
-    if (this.config.autoHttp.enabled) {
-      recordAutoHttpData(this);
-    }
-    if (this.config.autoIoRedis.enabled) {
-      recordAutoIoRedisData(this);
-    }
+    const context = this;
+    const pluginKeys = Object.keys(plugins);
+    pluginKeys.forEach(k => {
+      const conf = plugins[k].config;
+      if (this.config[conf].enabled) {
+        recordData(context, k);
+      }
+    });
     addToReport(this);
   }
   start(name) {
