@@ -35,21 +35,17 @@ function wrapHttpGet(mod) {
 // these are keys that are mostly node specific and come from the actual js request object
 const unnecessaryReqKeys = new Map(
   [
-    'accept-encoding',
     'agent',
     'automaticFailover',
     'cache',
     'decompress',
     'followRedirect',
-    'host',
     'href',
     'retries',
-    // 'slashes',
     'search',
     'strictTtl',
     'throwHttpErrors',
-    'useElectronNet',
-    'user-agent'
+    'useElectronNet'
   ].map(s => [s])
 );
 
@@ -101,7 +97,13 @@ function getResDataObject(res) {
 const defaultKeysToRecord = new Map(
   [
     'request.hash',
+    'request.headers.cache-control',
+    'request.headers.content-length',
+    'request.headers.content-type',
+    'request.headers.host',
+    'request.headers.server',
     'request.headers.user-agent',
+    'request.headers.x-amz-target',
     'request.hostname',
     'request.method',
     'request.path',
@@ -113,14 +115,14 @@ const defaultKeysToRecord = new Map(
     'response.headers.content-length',
     'response.headers.content-type',
     'response.headers.server',
-    'response.statusCode',
-    'response.statusMessage'
+    'response.statuscode',
+    'response.statusmessage'
   ].map(s => [s])
 );
 
 function filterData(config = {}, completeHttpObj = {}) {
   const whitelistedObject = pickBy(completeHttpObj, (v, k) =>
-    defaultKeysToRecord.has(k)
+    defaultKeysToRecord.has(String(k).toLowerCase())
   );
   if (typeof config.filter === 'function') {
     return config.filter(whitelistedObject, completeHttpObj);
@@ -151,17 +153,32 @@ function wrapHttpRequest({
       // setup http trace data that will be sent to IOpipe later
       moduleData[id] = {};
       moduleData[id].request = getReqDataObject(rawOptions, protocol);
+      // patch for Axios
+      if (!moduleData[id].request.hostname && moduleData[id].request.host) {
+        moduleData[id].request.hostname = moduleData[id].request.host;
+      } else if (
+        !moduleData[id].request.hostname &&
+        moduleData[id].request.url
+      ) {
+        moduleData[id].request.hostname = moduleData[id].request.url;
+      }
+
+      // flattening so that req headers can be sent even if there's a timeout
+      moduleData[id] = flatten(moduleData[id], { maxDepth: 5 });
+      moduleData[id] = filterData(config, moduleData[id]);
 
       // the func to execute at the end of the http call
       function extendedCallback(res) {
         timeline.mark(`end:${id}`);
-        // add full response data
-        moduleData[id].response = getResDataObject(res);
-        // flatten object for easy transformation/filtering later
-        moduleData[id] = flatten(moduleData[id], { maxDepth: 5 });
-        moduleData[id] = filterData(config, moduleData[id]);
+        // add full response data if the request passed filtering
+        if (typeof moduleData[id] === 'object') {
+          moduleData[id].response = getResDataObject(res);
+          // flatten object for easy transformation/filtering later
+          moduleData[id] = flatten(moduleData[id], { maxDepth: 5 });
+          moduleData[id] = filterData(config, moduleData[id]);
+        }
 
-        // if filter function returns falsey value, drop all data completely
+        // if either filter function returns falsey value, drop all data completely
         if (typeof moduleData[id] !== 'object') {
           timeline.data = timeline.data.filter(
             d => !new RegExp(id).test(d.name)
