@@ -3,7 +3,13 @@ import Perf from 'performance-node';
 import pkg from '../package.json'; // eslint-disable-line import/extensions
 import { addToReport, addTraceData } from './addToReport';
 
-const load = plugin => import(`./plugins/${plugin}`);
+const load = plugin => {
+  /*eslint-disable camelcase, no-undef*/
+  if (typeof __non_webpack_require__ === 'function') {
+    return __non_webpack_require__(`./plugins/${plugin}`);
+  }
+  return import(`./plugins/${plugin}`);
+};
 
 const plugins = {
   https: {
