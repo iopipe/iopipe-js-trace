@@ -108,10 +108,8 @@ describe('Wrapping redis Mock', () => {
 
     wrap({ timeline, data });
 
-    client = redis.createClient({ db: 2 });
-
-    client.set = jest.fn((key, val) => mockSet(key, val));
-    client.get = jest.fn(key => mockGet(key));
+    const m = new mockRedis();
+    const client = m.createClient({ db: 2 });
 
     const expectedStr = 'wrapping redis mock';
     client.set('testString', expectedStr);
