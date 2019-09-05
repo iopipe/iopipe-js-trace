@@ -6,26 +6,30 @@ const dbUrl = 'mongodb://localhost:27017';
 
 const timelineExpect = (timeline, data, mongoData) => {
   const { commandName, dbName, collection } = mongoData;
-  let idx = 2;
-  // all tests connect, and most first define db.
-  if (commandName === 'connect') {
-    idx = 0;
-  } else if (commandName === 'db') {
-    idx = 1;
-  }
-
   const entries = timeline.getEntries();
   expect(entries.length).toBeGreaterThan(0);
-  expect(entries[idx].name).toMatch(/^start:mongodb-(.){36}$/);
+  const lastStart = entries.length - 2;
+  const lastEnd = entries.length - 1;
+
+  expect(entries[lastStart].name).toMatch(/^start:mongodb-(.){36}$/);
+  expect(entries[lastEnd].name).toMatch(/^end:mongodb-(.){36}$/);
+
+  const entryId = entries[lastEnd].name.substr(4);
 
   const dataKeys = Object.keys(data);
   expect(dataKeys.length).toBeGreaterThan(0);
-  const trace = data[dataKeys[idx]];
+
+  const trace = data[entryId];
+  expect(trace).toBeDefined();
   expect(trace.name).toBeDefined();
   expect(trace.name).toBe(commandName);
-  expect(trace.dbType).toBe('MongoDb');
+  expect(trace.dbType).toBe('mongodb');
   expect(trace.request.key).toBeDefined();
   expect(trace.request.db).toBe(dbName);
+  expect(trace.request.hostname).toBeDefined();
+  expect(trace.request.port).toBeDefined();
+  expect(trace.request.hostname).not.toBeNull();
+  expect(trace.request.port).not.toBeNull();
 
   if (collection) {
     expect(trace.request.table).toBe(collection);
@@ -33,6 +37,8 @@ const timelineExpect = (timeline, data, mongoData) => {
 };
 
 /* Convenience methods around MongoDb functions, used to test unwrapped and wrapped: */
+const createClient = () =>
+  new MongoClient(dbUrl, { useNewUrlParser: true, useUnifiedTopology: true });
 
 const insertDocuments = (documents, collectionName, db, callback) => {
   const collection = db.collection(collectionName);
@@ -55,31 +61,11 @@ const findDocuments = (match, collectionName, db, callback) => {
   });
 };
 
-const removeDocument = (document, collectionName, db, callback) => {
+const deleteDocument = (document, collectionName, db, callback) => {
   const collection = db.collection(collectionName);
-  collection.remove(document, (err, result) => {
+  collection.deleteOne(document, (err, result) => {
     callback(err, result);
   });
-};
-
-const dropCollection = (collectionName, db, callback) => {
-  // guarding against mongo error when collection doesn't exist
-  if (
-    !db.s ||
-    !db.s.namespace ||
-    !db.s.namespace.collection ||
-    db.s.namespace.collection !== collectionName
-  ) {
-    return callback(null, true);
-  }
-
-  try {
-    return db
-      .collection(collectionName)
-      .drop({}, (err, result) => callback(err, result));
-  } catch (e) {
-    return callback(e);
-  }
 };
 
 const mockMongoStore = {};
@@ -92,50 +78,78 @@ const mockGet = key => {
   return mockMongoStore[key];
 };
 
-const mockSet = (key, val) => {
-  mockMongoStore[key] = val;
-  return { key: val };
+const mockSet = obj => {
+  const key = Object.keys(obj).join('');
+  mockMongoStore[key] = obj;
+  return obj;
 };
 
-// jest.mock('mongodb').default;
+/*eslint-disable babel/no-invalid-this*/
+/*eslint-disable func-name-matching */
+/*eslint-disable prefer-rest-params */
+/*eslint-disable func-names */
+/*eslint-disable camelcase */
+/*eslint-disable babel/new-cap */
 
-xtest('Basic mongodb mock works as normal if wrap is not called', () => {
-  const c = new MongoClient(dbUrl);
-
-  c.insert = jest.fn((key, val) => mockSet(key, val));
-  c.find = jest.fn(key => mockGet(key));
-
-  const expectedStr = 'mock mongo test';
-  expect(c.insert.__wrapped).toBeUndefined();
-  c.insert({ testString: expectedStr });
-
-  const returnedValue = c.find();
-  expect(returnedValue.testString).toBe(expectedStr);
+const mockMongoDb = jest.fn();
+mockMongoDb.mockImplementation(function() {
+  const context = this;
+  this.insert = jest.fn(obj => mockSet(obj));
+  this.find = jest.fn(key => mockGet(key));
+  this.close = jest.fn(() => {});
+  this.Connection = jest.fn(() => {});
+  this.Server = jest.fn(() => {});
+  this.MongoClient = jest.fn(() => context);
 });
 
-describe('MongoDb works as normal if wrap is not called', () => {
+test('Basic mongodb mock works as normal if wrap is not called', () => {
+  const c = new mockMongoDb();
+  const expectedStr = 'mock mongo test';
+  expect(c.__iopipeShimmer).toBeUndefined();
+  c.insert({ testString: expectedStr });
+  const returnedValue = c.find('testString');
+  expect(returnedValue.testString).toBe(expectedStr);
+  c.close();
+});
+
+xdescribe('MongoDb works as normal if wrap is not called', () => {
   const dbName = 'iopipeTestDb';
   const collection = 'iopipeTestCollection';
-
-  afterAll(done => {
-    const c = new MongoClient(dbUrl);
+  /*
+  // beforeAll and afterAll are run even if this suite is disabled.
+  // uncomment to run against local MongoDB
+  beforeAll(done => {
+    const c = createClient();
     c.connect((clErr, client) => {
       expect(clErr).toBeNull();
       const db = client.db(dbName);
-      dropCollection(collection, db, err => {
-        expect(err).toBeNull();
+      return deleteDocument({}, collection, db, err => {
+        db.dropCollection(collection);
         c.close();
         done(err);
       });
     });
   });
 
+  afterAll(done => {
+    const c = createClient();
+    c.connect((clErr, client) => {
+      expect(clErr).toBeNull();
+      const db = client.db(dbName);
+      return deleteDocument({}, collection, db, err => {
+        c.close();
+        done(err);
+      });
+    });
+  });
+  // */
+
   test('Unwrapped client is not wrapped', () => {
     expect(MongoClient.__wrapped).toBeUndefined();
   });
 
   test('Client can connect and close connection', done => {
-    const c = new MongoClient(dbUrl);
+    const c = createClient();
     c.connect((clErr, client) => {
       expect(clErr).toBeNull();
       expect(client.__iopipeTraceId).toBeUndefined();
@@ -145,7 +159,7 @@ describe('MongoDb works as normal if wrap is not called', () => {
     });
   });
   test('Client can insert documents', done => {
-    const c = new MongoClient(dbUrl);
+    const c = createClient();
     expect(c.__wrapped).toBeUndefined();
     c.connect((clErr, client) => {
       expect(clErr).toBeNull();
@@ -166,7 +180,7 @@ describe('MongoDb works as normal if wrap is not called', () => {
     });
   });
   test('Client can get a document', done => {
-    const c = new MongoClient(dbUrl);
+    const c = createClient();
     c.connect((clErr, client) => {
       expect(clErr).toBeNull();
       const db = client.db(dbName);
@@ -180,7 +194,7 @@ describe('MongoDb works as normal if wrap is not called', () => {
     });
   });
   test('Client can set a property', done => {
-    const c = new MongoClient(dbUrl);
+    const c = createClient();
     c.connect((clErr, client) => {
       expect(clErr).toBeNull();
       const db = client.db(dbName);
@@ -198,12 +212,12 @@ describe('MongoDb works as normal if wrap is not called', () => {
   });
 
   test('Client can delete the document', done => {
-    const c = new MongoClient(dbUrl);
+    const c = createClient();
     c.connect((clErr, client) => {
       expect(clErr).toBeNull();
       const db = client.db(dbName);
 
-      removeDocument({ b: 2 }, collection, db, (err, results) => {
+      deleteDocument({ b: 2 }, collection, db, (err, results) => {
         expect(err).toBeNull();
         expect(results).toBeDefined();
         expect(results.result.n).toBe(1);
@@ -220,111 +234,85 @@ test('Bails if timeline is not instance of performance-node', () => {
   expect(bool).toBe(false);
 });
 
-xdescribe('Wrapping mongo Mock', () => {
-  let client;
-
+describe('Wrapping MongoDB Mock', () => {
   afterEach(() => {
     unwrap();
   });
 
-  afterAll(() => {
-    client.quit();
-  });
-
-  test('Mocking mongo to pass CircleCI', () => {
+  test('Mocking MongoDB to pass CircleCI', () => {
     const timeline = new Perf({ timestamp: true });
     const data = {};
-
     wrap({ timeline, data });
-
-    client = new MongoClient({ db: 2 });
-
-    client.set = jest.fn((key, val) => mockSet(key, val));
-    client.get = jest.fn(key => mockGet(key));
-
-    const expectedStr = 'wrapping mongo mock';
-    client.set('testString', expectedStr);
-
-    const returnedValue = client.get('testString');
-    expect(returnedValue).toBe(expectedStr);
-
+    const c = new mockMongoDb();
+    const expectedStr = 'wrapping MongoDB mock';
+    c.insert({ testString: expectedStr });
+    const returnedValue = c.find('testString');
+    expect(returnedValue.testString).toBe(expectedStr);
+    c.close();
     // not doing timelineExpect because mock doesn't affect timeline
   });
 });
 
-describe('Wrapping MongoDb', () => {
+xdescribe('Wrapping MongoDB', () => {
   const dbName = 'iopipeTestDb';
   const collection = 'iopipeTestWrapCollection';
-
+  /*
+  // beforeAll/afterAll/afterEach are still run, even if this suite is disabled.
+  // uncomment this block for testing with local MongoDB
   beforeAll(done => {
     // removing everything before tests
-    const c = new MongoClient(dbUrl);
+    const c = createClient();
     c.connect((clErr, client) => {
       expect(clErr).toBeNull();
       const db = client.db(dbName);
-      return removeDocument({}, collection, db, err => {
+      return deleteDocument({}, collection, db, err => {
         done(err);
       });
     });
   });
-
   afterEach(done => {
     unwrap();
     return done();
   });
-
   afterAll(done => {
-    const c = new MongoClient(dbUrl);
+    const c = createClient();
     c.connect((clErr, client) => {
       expect(clErr).toBeNull();
       const db = client.db(dbName);
-      new Promise((resolve, reject) => {
-        return dropCollection(collection, db, (err, result) => {
-          expect(err).toBeNull();
-          if (err) {
-            reject(err);
-          }
-          return resolve(result);
-        });
-      }).then(() => {
-        c.close();
-        done();
+      return deleteDocument({}, collection, db, err => {
+        try {
+          db.dropCollection(collection);
+        } catch (e) {
+          console.error(e); //eslint-disable-line no-console
+        }
+        done(err);
       });
     });
   });
-
+  // */
   test('Wrap works with connect', done => {
     const timeline = new Perf({ timestamp: true });
     const data = {};
-
     wrap({ timeline, data });
-
-    const c = new MongoClient(dbUrl);
-
+    const c = createClient();
     expect(c.__iopipeShimmer).toBe(true);
-
     c.connect(err => {
       expect(err).toBeNull();
-
       timelineExpect(timeline, data, {
         commandName: 'connect',
         dbName: 'admin'
       });
-
       c.close();
       return done(err);
     });
   });
-
-  test('Wrap works with insert', done => {
+  test('Wrap generates traces for insert', done => {
     const timeline = new Perf({ timestamp: true });
     const data = {};
-
+    expect(timeline.data).toHaveLength(0);
     wrap({ timeline, data });
-
-    const c = new MongoClient(dbUrl);
+    const c = createClient();
     expect(c.__iopipeShimmer).toBe(true);
-
     c.connect((clErr, client) => {
       expect(clErr).toBeNull();
 
@@ -343,24 +331,18 @@ describe('Wrapping MongoDb', () => {
           dbName,
           collection
         });
-
         c.close();
-
         return done(err);
       });
     });
   });
-  test('Wrap works with find()', done => {
+  test('Wrap generates traces for find', done => {
     const timeline = new Perf({ timestamp: true });
     const data = {};
-
     wrap({ timeline, data });
-
     expect(timeline.data).toHaveLength(0);
-
-    const c = new MongoClient(dbUrl);
+    const c = createClient();
     expect(c.__iopipeShimmer).toBe(true);
-
     c.connect((clErr, client) => {
       expect(clErr).toBeNull();
       const db = client.db(dbName);
@@ -369,26 +351,23 @@ describe('Wrapping MongoDb', () => {
         expect(err).toBeNull();
         expect(results).toHaveLength(1);
 
+        // find returns a cursor and doesn't take a callback, so doesn't write an end trace
         timelineExpect(timeline, data, {
-          commandName: 'find',
+          commandName: 'toArray',
           dbName,
           collection
         });
-
         c.close();
         return done(err);
       });
     });
   });
-  test('Client can update a document', done => {
+  test('Wrap generates traces for update', done => {
     const timeline = new Perf({ timestamp: true });
     const data = {};
-
     wrap({ timeline, data });
-
     expect(timeline.data).toHaveLength(0);
-
-    const c = new MongoClient(dbUrl);
+    const c = createClient();
     c.connect((clErr, client) => {
       expect(clErr).toBeNull();
       const db = client.db(dbName);
@@ -405,41 +384,100 @@ describe('Wrapping MongoDb', () => {
           dbName,
           collection
         });
-
         c.close();
         return done(err);
       });
     });
   });
-
-  test('Client can delete the document', done => {
+  test('Wrap generates traces for delete', done => {
     const timeline = new Perf({ timestamp: true });
     const data = {};
-
     wrap({ timeline, data });
-
     expect(timeline.data).toHaveLength(0);
-
-    const c = new MongoClient(dbUrl);
+    const c = createClient();
     c.connect((clErr, client) => {
       expect(clErr).toBeNull();
       const db = client.db(dbName);
 
-      removeDocument({ b: 2 }, collection, db, (err, results) => {
+      deleteDocument({ b: 2 }, collection, db, (err, results) => {
         expect(err).toBeNull();
         expect(results).toBeDefined();
         expect(results.result.n).toBe(1);
         expect(results.result.ok).toBe(1);
 
         timelineExpect(timeline, data, {
-          commandName: 'remove',
+          commandName: 'deleteOne',
           dbName,
           collection
         });
-
         c.close();
         return done(err);
       });
+    });
+  });
+  test('Client can trace bulk writes', done => {
+    const timeline = new Perf({ timestamp: true });
+    const data = {};
+    wrap({ timeline, data });
+    expect(timeline.data).toHaveLength(0);
+    const c = createClient();
+    c.connect(async (clErr, client) => {
+      expect(clErr).toBeNull();
+      const db = client.db(dbName);
+      const col = db.collection(collection);
+      await col.bulkWrite(
+        [
+          { insertOne: { document: { a: 1 } } },
+          {
+            updateOne: {
+              filter: { a: 2 },
+              update: { $set: { a: 2 } },
+              upsert: true
+            }
+          },
+          {
+            updateMany: {
+              filter: { a: 2 },
+              update: { $set: { a: 2 } },
+              upsert: true
+            }
+          },
+          { deleteOne: { filter: { c: 1 } } },
+          { deleteMany: { filter: { c: 1 } } },
+          {
+            replaceOne: {
+              filter: { c: 3 },
+              replacement: { c: 4 },
+              upsert: true
+            }
+          }
+        ],
+        { ordered: true, w: 1 },
+        (err, response) => {
+          expect(err).toBeNull();
+          expect(response).not.toBeNull();
+          c.close();
+        }
+      );
+
+      const dataKeys = Object.keys(data);
+      const lastEntry = dataKeys.length - 1;
+      const lastKey = dataKeys[lastEntry];
+      const bulkCommands = [
+        'insertOne',
+        'updateOne',
+        'updateMany',
+        'deleteOne',
+        'deleteMany',
+        'replaceOne',
+        'ordered',
+        'w'
+      ].join(', ');
+
+      expect(data[lastKey].name).toBe('bulkWrite');
+      expect(data[lastKey].request.bulkCommands).toBeDefined();
+      expect(data[lastKey].request.bulkCommands).toBe(bulkCommands);
+      return done();
     });
   });
 });

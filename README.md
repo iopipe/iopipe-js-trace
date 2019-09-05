@@ -118,6 +118,19 @@ If you're using redis@2.5.3 or earlier, turn on auto-tracing with the `IOPIPE_TR
 
 Set the environment variable `IOPIPE_TRACE_IOREDIS` to `true`, and your function will enable automatic traces on Redis commands: the name of the command, name of the host, port, and connection (if defined in your connection options), and the key being written or read.  Commands batched with multi/exec are traced individually, so you can measure individual performance within batch operations.
 
+#### `autoMongoDb` Automatically trace MongoDB commands
+
+Set the environment variable `IOPIPE_TRACE_MONGODB` to `true`, and IOpipe will trace commands automatically: which command, which key is being read or written, database and collection name (if available), and the connection's hostname and port. This plugin supports these commands: 
+ 
+* `command`, `insert`, `update`, and `remove` on the Server class
+* `connect`, `close`, and `db` on the MongoClient class.
+*  `find`, `findOne`, `insertOne`, `insertMany`, `updateOne`, `updateMany`, `replaceOne`, `deleteOne`, `deleteMany`, `createIndex` on collections. `bulkWrite` is also supported, and generates a list of which commands were part of the bulk operation.
+*  `next`, `filter`, `sort`, `hint`, and `toArray` on the Cursor class.
+
+Commands used with a callback parameter generate end traces and duration metrics. (Note that MongoDB commands that don't take callback params--like `find`--won't generate durations.) 
+
+This plugin supports MongoDB Node.JS Driver v3.3 and newer.  
+
 #### `autoMeasure` (bool: optional = true)
 
 By default, the plugin will create auto-measurements for marks with matching `mark.start` and `mark.end`. These measurements will be displayed in the [IOpipe Dashboard](https://dashboard.iopipe.com). If you'd like to turn this off, set `autoMeasure: false`.

@@ -1,10 +1,11 @@
 import { debuglog } from 'util';
 import shimmer from 'shimmer';
 import { MongoClient, Server, Cursor, Collection } from 'mongodb';
-//import * as mongodb from 'mongodb-core';
 import Perf from 'performance-node';
 import uuid from 'uuid/v4';
+import get from 'lodash/get';
 
+const dbType = 'mongodb';
 const serverOps = ['command', 'insert', 'update', 'remove'];
 const collectionOps = [
   'find',
@@ -15,9 +16,11 @@ const collectionOps = [
   'updateMany',
   'replaceOne',
   'deleteOne',
-  'deleteMany'
+  'deleteMany',
+  'bulkWrite',
+  'createIndex'
 ];
-const cursorOps = ['next'];
+const cursorOps = ['next', 'filter', 'sort', 'hint', 'toArray'];
 const clientOps = ['connect', 'close', 'db'];
 
 const clientTarget = MongoClient && MongoClient.prototype;
@@ -34,53 +37,108 @@ const debug = debuglog('@iopipe/trace');
 
 const createId = () => `mongodb-${uuid()}`;
 
-const filterRequest = (params, context) => {
-  const { command, args } = params;
-  let host, port, db, table;
-  if (!context) {
-    return null;
+const filterArrayArgs = args =>
+  args.map(arg => {
+    if (arg._id) {
+      return arg._id;
+    }
+    return Object.keys(arg).join(', ');
+  });
+
+const extractHostAndPort = ctx => {
+  let host, port, targetObj;
+  const obj = ctx.s;
+  const tServers = get(obj, 'topology.s.options.servers');
+
+  if (ctx instanceof Cursor) {
+    targetObj = get(ctx, 'options.db.s.topology.s.options.servers');
+  } else if (tServers) {
+    targetObj = tServers;
   }
 
+  if (obj.clonedOptions) {
+    host = obj.clonedOptions.host;
+    port = obj.clonedOptions.port;
+  } else if (targetObj && targetObj.length && targetObj.length > 0) {
+    const server = targetObj[0];
+    host = server.host;
+    port = server.port;
+  } else if (obj.url) {
+    const urlArray = obj.url.split(':');
+    host = urlArray[1].replace('//', '');
+    port = urlArray[2];
+  }
+  return { host, port };
+};
+
+const extractDbAndTable = obj => {
+  let db, table;
+  if (!db && obj.s.namespace) {
+    db = obj.s.namespace.db;
+  } else if (!db && obj.namespace) {
+    db = obj.namespace.db;
+    table = obj.namespace.collection;
+  }
+  if (!table && obj.s.namespace) {
+    table = obj.s.namespace.collection;
+  }
+  return { db, table };
+};
+
+const filterRequest = (params, context) => {
+  if (!context || !context.s) {
+    return null;
+  }
+  const { command, args } = params;
+  let { host, port } = context.s;
+  let db, table;
+
   let filteredArgs = [];
+  let bulkCommands = [];
+
   for (let i = 0; i < args.length; i++) {
+    let argData;
+    const isObject = typeof args[i] === 'object';
+
     if (args[i].db || args[i].collection) {
       db = args[i].db ? args[i].db : null;
       table = args[i].collection ? args[i].collection : null;
-    } else if (typeof args[i] === 'object' && args[i].length) {
-      filteredArgs = [...filteredArgs, { ids: args[i].map(arg => arg._id) }]; //if array, return all ids.
-    } else if (typeof args[i] !== 'function' && i < 2) {
-      filteredArgs = [...filteredArgs, args[i]];
+    }
+
+    if (isObject && args[i].length) {
+      argData = filterArrayArgs(args[i]);
+    } else if (isObject) {
+      argData = Object.keys(args[i]);
+    } else if (typeof args[i] !== 'function') {
+      argData = args[i];
+    }
+
+    if (argData && argData.length && command === 'bulkWrite') {
+      bulkCommands = [...bulkCommands, ...argData];
+    } else if (typeof argData === 'object' && argData.length) {
+      filteredArgs = [...filteredArgs, ...argData];
+    } else if (argData) {
+      filteredArgs = [...filteredArgs, argData];
     }
   }
 
-  if (context && context.s) {
-    if (!host) {
-      host = context.s.host ? context.s.host : null;
-      if (!host) {
-        host =
-          context.s.clonedOptions && context.s.clonedOptions.host
-            ? context.s.clonedOptions.host
-            : null;
-      }
-    }
-    if (!port) {
-      port = context.s.port ? context.s.port : null;
-      if (!port) {
-        context.s.clonedOptions && context.s.clonedOptions.port
-          ? context.s.clonedOptions.port
-          : null;
-      }
-    }
-    if (!db && context.s.namespace) {
-      db = context.s.namespace.db;
-    }
-    if (!table && context.s.namespace) {
-      table = context.s.namespace.collection;
-    }
+  if (!host && !port) {
+    const obj = extractHostAndPort(context);
+    host = obj.host;
+    port = obj.port;
   }
+
+  if (!db) {
+    const dbInfo = extractDbAndTable(context);
+    db = dbInfo.db;
+    table = dbInfo.table;
+  }
+
   return {
     command,
-    key: filteredArgs,
+    key:
+      typeof filteredArgs === 'object' ? filteredArgs.join(', ') : filteredArgs,
+    bulkCommands: bulkCommands.join(', '),
     hostname: host,
     port,
     db,
@@ -119,36 +177,38 @@ function wrap({ timeline, data = {} } = {}) {
     if (typeof original !== 'function') {
       return original;
     }
-
     return function wrappedCommand() {
       const context = this;
       const id = createId();
       const args = Array.prototype.slice.call(arguments);
-      let cb;
+      let cb, cbIdx, wrappedCb;
+
       for (const i in args) {
         if (typeof args[i] === 'function') {
           cb = args[i];
+          cbIdx = i;
         }
       }
       if (!data[id]) {
+        timeline.mark(`start:${id}`);
         data[id] = {
           name: command,
-          dbType: 'MongoDb',
+          dbType,
           request: filterRequest({ command, args }, context)
         };
       }
-      timeline.mark(`start:${id}`);
+
       if (typeof cb === 'function' && !cb.__iopipeTraceId) {
-        cb = function wrappedCallback(err) {
+        wrappedCb = function wrappedCallback(err) {
           if (err) {
             data[id].error = err.message;
             data[id].errorStack = err.stack;
           }
           timeline.mark(`end:${id}`);
-
           return cb.apply(this, arguments);
         };
-        cb.__iopipeTraceId = id;
+        wrappedCb.__iopipeTraceId = id;
+        args[cbIdx] = wrappedCb;
       }
       this.__iopipeTraceId = id;
       return original.apply(this, args);
@@ -169,7 +229,6 @@ function unwrap() {
     shimmer.massUnwrap(cursorTarget, cursorOps);
     delete cursorTarget.__iopipeShimmer;
   }
-
   if (clientTarget.__iopipeShimmer) {
     shimmer.massUnwrap(clientTarget, clientOps); // mass just seems to hang and not complete
     delete clientTarget.__iopipeShimmer;
