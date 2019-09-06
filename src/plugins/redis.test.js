@@ -20,7 +20,22 @@ const mockSet = (key, val) => {
   return { key: val };
 };
 
-jest.mock('redis').default;
+const mockRedis = jest.fn();
+
+/*eslint-disable babel/no-invalid-this*/
+/*eslint-disable func-name-matching */
+/*eslint-disable prefer-rest-params */
+/*eslint-disable func-names */
+/*eslint-disable camelcase */
+
+mockRedis.mockImplementation(function() {
+  const context = this;
+  this.RedisClient = jest.fn(() => {});
+  this.internal_send_command = jest.fn(() => {});
+  this.set = jest.fn((key, val) => mockSet(key, val));
+  this.get = jest.fn(key => mockGet(key));
+  this.createClient = jest.fn(() => context);
+});
 
 function timelineExpect({ timeline, data }) {
   const dataValues = _.values(data);
@@ -37,7 +52,8 @@ function timelineExpect({ timeline, data }) {
 }
 
 test('Basic Redis mock works as normal if wrap is not called', () => {
-  const client = redis.createClient();
+  const m = new mockRedis(); //eslint-disable-line babel/new-cap
+  const client = m.createClient();
   client.set = jest.fn((key, val) => mockSet(key, val));
   client.get = jest.fn(key => mockGet(key));
 

@@ -8,7 +8,7 @@ const load = plugin => import(`./plugins/${plugin}`);
 const plugins = {
   https: {
     config: 'autoHttp',
-    enabled: true,
+    flag: 'IOPIPE_TRACE_AUTO_HTTP_ENABLED',
     entries: 'httpTraceEntries'
   },
   ioredis: {
@@ -37,7 +37,12 @@ function getBooleanFromEnv(key = '') {
 function getConfig(config = {}) {
   const {
     autoMeasure = true,
-    autoHttp = { enabled: true },
+    autoHttp = {
+      enabled:
+        typeof process.env.IOPIPE_TRACE_AUTO_HTTP_ENABLED === 'undefined'
+          ? true
+          : getBooleanFromEnv('IOPIPE_TRACE_AUTO_HTTP_ENABLED')
+    },
     autoIoRedis = { enabled: getBooleanFromEnv('IOPIPE_TRACE_IOREDIS') },
     autoRedis = { enabled: getBooleanFromEnv('IOPIPE_TRACE_REDIS') }
   } = config;
@@ -76,7 +81,6 @@ function addTimelineMeasures(pluginInstance, timelineArg) {
     .map(entry => entry.name);
   // loop through each mark and make sure there is a start and end
   // if so, measure
-  // console.log('NAMES', names);
   names.forEach(name => {
     if (name.match(/^(start):.+/)) {
       const baseName = name.replace(/(start|end):(.+)/, '$2');

@@ -72,7 +72,7 @@ Automatically create traces and matching metadata for each http/s call made with
 
 #### `autoHttp.enabled` (bool: optional = false)
 
-Enable HTTP/S auto-tracing. Disabled by default. You can also use the environment variable `IOPIPE_TRACE_AUTO_HTTP_ENABLED`.
+Enable HTTP/S auto-tracing. Enabled by default. You can also use the environment variable `IOPIPE_TRACE_AUTO_HTTP_ENABLED`.
 
 #### `autoHttp.filter` (func: optional)
 
