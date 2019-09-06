@@ -3,6 +3,14 @@ import Perf from 'performance-node';
 import pkg from '../package.json'; // eslint-disable-line import/extensions
 import { addToReport, addTraceData } from './addToReport';
 
+const load = plugin => {
+  /*eslint-disable camelcase, no-undef*/
+  if (typeof __non_webpack_require__ === 'function') {
+    return __non_webpack_require__(`./plugins/${plugin}`);
+  }
+  return import(`./plugins/${plugin}`);
+};
+
 const plugins = {
   https: {
     config: 'autoHttp',
@@ -117,23 +125,24 @@ class TracePlugin {
 
     const context = this;
     const pluginKeys = Object.keys(plugins);
+
     pluginKeys.forEach(k => {
       const conf = plugins[k].config;
       const namespace = `${conf}Data`;
 
       if (context.config[conf].enabled) {
         // getting plugin; allows this to be loaded only if enabled.
-        const module = require(`./plugins/${k}`);
-        plugins[k].wrap = module.wrap;
-        plugins[k].unwrap = module.unwrap;
-
-        context[namespace] = {
-          timeline: new Perf({ timestamp: true }),
-          // object to store data about traces that will make it into the report later
-          data: {},
-          config: context.config[conf]
-        };
-        plugins[k].wrap(context[namespace]);
+        load(`${k}`).then(mod => {
+          plugins[k].wrap = mod.wrap;
+          plugins[k].unwrap = mod.unwrap;
+          context[namespace] = {
+            timeline: new Perf({ timestamp: true }),
+            // object to store data about traces that will make it into the report later
+            data: {},
+            config: context.config[conf]
+          };
+          plugins[k].wrap(context[namespace]);
+        });
       }
     });
 
