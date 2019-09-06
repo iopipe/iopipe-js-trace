@@ -64,6 +64,26 @@ test('Can instantiate the plugin with no options', () => {
   expect(inst.meta.homepage).toBe(pkg.homepage);
 });
 
+test('http trace can be turned off via env var', () => {
+  process.env.IOPIPE_TRACE_AUTO_HTTP_ENABLED = false;
+  const plugin = tracePlugin();
+  const inst = plugin({});
+  expect(inst.config.autoHttp.enabled).toBe(false);
+});
+
+test('http trace can be turned on via env var', () => {
+  process.env.IOPIPE_TRACE_AUTO_HTTP_ENABLED = true;
+  const plugin = tracePlugin();
+  const inst = plugin({});
+  expect(inst.config.autoHttp.enabled).toBe(true);
+});
+
+test('http trace is on if not otherwise defined', () => {
+  const plugin = tracePlugin();
+  const inst = plugin({});
+  expect(inst.config.autoHttp.enabled).toBe(true);
+});
+
 test('Works with iopipe', async () => {
   try {
     let inspectableInv, testStartDate, testEndDate;
