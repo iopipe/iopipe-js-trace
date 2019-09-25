@@ -22,6 +22,11 @@ const plugins = {
     flag: 'IOPIPE_TRACE_IOREDIS',
     entries: 'dbTraceEntries'
   },
+  mongodb: {
+    config: 'autoMongoDb',
+    flag: 'IOPIPE_TRACE_MONGODB',
+    entries: 'dbTraceEntries'
+  },
   redis: {
     config: 'autoRedis',
     flag: 'IOPIPE_TRACE_REDIS',
@@ -50,6 +55,7 @@ function getConfig(config = {}) {
           : getBooleanFromEnv('IOPIPE_TRACE_AUTO_HTTP_ENABLED')
     },
     autoIoRedis = { enabled: getBooleanFromEnv('IOPIPE_TRACE_IOREDIS') },
+    autoMongoDb = { enabled: getBooleanFromEnv('IOPIPE_TRACE_MONGODB') },
     autoRedis = { enabled: getBooleanFromEnv('IOPIPE_TRACE_REDIS') }
   } = config;
   return {
@@ -65,6 +71,12 @@ function getConfig(config = {}) {
         typeof autoIoRedis.enabled === 'boolean'
           ? autoIoRedis.enabled
           : getBooleanFromEnv('IOPIPE_TRACE_IOREDIS')
+    },
+    autoMongoDb: {
+      enabled:
+        typeof autoMongoDb.enabled === 'boolean'
+          ? autoMongoDb.enabled
+          : getBooleanFromEnv('IOPIPE_TRACE_MONGODB')
     },
     autoRedis: {
       enabled:
@@ -126,13 +138,13 @@ class TracePlugin {
     const context = this;
     const pluginKeys = Object.keys(plugins);
 
-    pluginKeys.forEach(k => {
+    pluginKeys.map(async k => {
       const conf = plugins[k].config;
       const namespace = `${conf}Data`;
 
-      if (context.config[conf].enabled) {
+      if (context.config[conf] && context.config[conf].enabled) {
         // getting plugin; allows this to be loaded only if enabled.
-        load(`${k}`).then(mod => {
+        await load(`${k}`).then(mod => {
           plugins[k].wrap = mod.wrap;
           plugins[k].unwrap = mod.unwrap;
           context[namespace] = {
@@ -166,7 +178,7 @@ class TracePlugin {
     pluginKeys.forEach(k => {
       const conf = plugins[k].config;
       if (context.config[conf].enabled) {
-        if (context.config[conf].enabled) {
+        if (plugins[k].unwrap && typeof plugins[k].unwrap === 'function') {
           plugins[k].unwrap();
         }
       }

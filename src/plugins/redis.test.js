@@ -27,6 +27,7 @@ const mockRedis = jest.fn();
 /*eslint-disable prefer-rest-params */
 /*eslint-disable func-names */
 /*eslint-disable camelcase */
+/*eslint-disable babel/new-cap */
 
 mockRedis.mockImplementation(function() {
   const context = this;
@@ -108,10 +109,8 @@ describe('Wrapping redis Mock', () => {
 
     wrap({ timeline, data });
 
-    client = redis.createClient({ db: 2 });
-
-    client.set = jest.fn((key, val) => mockSet(key, val));
-    client.get = jest.fn(key => mockGet(key));
+    const m = new mockRedis();
+    client = m.createClient({ db: 2 });
 
     const expectedStr = 'wrapping redis mock';
     client.set('testString', expectedStr);
