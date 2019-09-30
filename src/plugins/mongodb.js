@@ -1,9 +1,39 @@
 import { debuglog } from 'util';
 import shimmer from 'shimmer';
-import { MongoClient, Server, Cursor, Collection } from 'mongodb';
 import Perf from 'performance-node';
 import uuid from 'uuid/v4';
 import get from 'lodash/get';
+import loadModuleForTracing from '../loadHelper';
+
+const debug = debuglog('@iopipe:trace:mongodb');
+
+let MongoClient,
+  Server,
+  Cursor,
+  Collection,
+  clientTarget,
+  collectionTarget,
+  serverTarget,
+  cursorTarget;
+
+loadModuleForTracing('mongodb')
+  .then(module => {
+    MongoClient = module.MongoClient;
+    Server = module.Server;
+    Cursor = module.Cursor;
+    Collection = module.Collection;
+
+    clientTarget = MongoClient && MongoClient.prototype;
+    collectionTarget = Collection && Collection.prototype;
+    serverTarget = Server && Server.prototype;
+    cursorTarget = Cursor && Cursor.prototype;
+
+    return module;
+  })
+  .catch(e => {
+    debug('Not loading mongodb', e);
+    return null;
+  });
 
 const dbType = 'mongodb';
 const serverOps = ['command', 'insert', 'update', 'remove'];
@@ -22,13 +52,6 @@ const collectionOps = [
 ];
 const cursorOps = ['next', 'filter', 'sort', 'hint', 'toArray'];
 const clientOps = ['connect', 'close', 'db'];
-
-const clientTarget = MongoClient && MongoClient.prototype;
-const collectionTarget = Collection && Collection.prototype;
-const serverTarget = Server && Server.prototype;
-const cursorTarget = Cursor && Cursor.prototype;
-
-const debug = debuglog('@iopipe/trace');
 
 /*eslint-disable babel/no-invalid-this*/
 /*eslint-disable func-name-matching */
@@ -147,6 +170,10 @@ const filterRequest = (params, context) => {
 };
 
 function wrap({ timeline, data = {} } = {}) {
+  if (!clientTarget) {
+    debug('mongodb plugin not accessible from trace plugin. Skipping.');
+    return false;
+  }
   if (!(timeline instanceof Perf)) {
     debug(
       'Timeline passed to plugins/mongodb.wrap not an instance of performance-node. Skipping.'
@@ -217,6 +244,13 @@ function wrap({ timeline, data = {} } = {}) {
 }
 
 function unwrap() {
+  if (!clientTarget) {
+    debug(
+      'mongodb plugin not accessible from trace plugin. Nothing to unwrap.'
+    );
+    return false;
+  }
+
   if (serverTarget.__iopipeShimmer) {
     shimmer.massUnwrap(serverTarget, serverOps);
     delete serverTarget.__iopipeShimmer;
@@ -233,6 +267,7 @@ function unwrap() {
     shimmer.massUnwrap(clientTarget, clientOps); // mass just seems to hang and not complete
     delete clientTarget.__iopipeShimmer;
   }
+  return true;
 }
 
 export { unwrap, wrap };

@@ -9,7 +9,7 @@ import pickBy from 'lodash.pickby';
 import isArray from 'isarray';
 import { flatten } from 'flat';
 
-const debug = debuglog('@iopipe/trace');
+const debug = debuglog('@iopipe:trace:https');
 
 /*eslint-disable babel/no-invalid-this*/
 

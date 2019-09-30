@@ -1,10 +1,22 @@
 import { debuglog } from 'util';
 import shimmer from 'shimmer';
-import Redis from 'ioredis';
 import Perf from 'performance-node';
 import uuid from 'uuid/v4';
+import loadModuleForTracing from '../loadHelper';
 
-const debug = debuglog('@iopipe/trace');
+const debug = debuglog('@iopipe:trace:ioredis');
+
+let Redis;
+
+loadModuleForTracing('ioredis')
+  .then(module => {
+    Redis = module;
+    return module;
+  })
+  .catch(e => {
+    debug('Not loading ioredis', e);
+    return false;
+  });
 
 /*eslint-disable babel/no-invalid-this*/
 /*eslint-disable func-name-matching */
@@ -29,6 +41,10 @@ const filterRequest = (command, context) => {
 };
 
 function wrap({ timeline, data = {} } = {}) {
+  if (!Redis) {
+    debug('ioredis plugin not accessible from trace plugin. Skipping.');
+    return false;
+  }
   if (!(timeline instanceof Perf)) {
     debug(
       'Timeline passed to plugins/ioredis.wrap not an instance of performance-node. Skipping.'
@@ -36,7 +52,7 @@ function wrap({ timeline, data = {} } = {}) {
     return false;
   }
 
-  if (!Redis.__iopipeShimmer) {
+  if (Redis && !Redis.__iopipeShimmer) {
     if (process.env.IOPIPE_TRACE_IOREDIS_INITPROMISE) {
       shimmer.wrap(
         Redis.Command && Redis.Command.prototype,
@@ -128,11 +144,18 @@ function wrap({ timeline, data = {} } = {}) {
 }
 
 function unwrap() {
+  if (!Redis) {
+    debug(
+      'ioredis plugin not accessible from trace plugin. Nothing to unwrap.'
+    );
+    return false;
+  }
   if (process.env.IOPIPE_TRACE_IOREDIS_INITPROMISE) {
     shimmer.unwrap(Redis.Command && Redis.Command.prototype, 'initPromise');
   }
   shimmer.unwrap(Redis && Redis.prototype, 'sendCommand');
   delete Redis.__iopipeShimmer;
+  return true;
 }
 
 export { unwrap, wrap };

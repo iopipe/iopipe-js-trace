@@ -1,10 +1,23 @@
 import { debuglog } from 'util';
 import shimmer from 'shimmer';
-import redis from 'redis';
+// import redis from 'redis';
 import Perf from 'performance-node';
 import uuid from 'uuid/v4';
+import loadModuleForTracing from '../loadHelper';
 
-const debug = debuglog('@iopipe/trace');
+let redis;
+
+const debug = debuglog('@iopipe:trace:redis');
+
+loadModuleForTracing('redis')
+  .then(module => {
+    redis = module;
+    return module;
+  })
+  .catch(e => {
+    debug('Not loading redis', e);
+    return false;
+  });
 
 /*eslint-disable babel/no-invalid-this*/
 /*eslint-disable func-name-matching */
@@ -31,6 +44,11 @@ const filterRequest = (command, context) => {
 };
 
 function wrap({ timeline, data = {} } = {}) {
+  if (!redis) {
+    debug('redis plugin not accessible from trace plugin. Skipping.');
+    return false;
+  }
+
   const target = redis.RedisClient && redis.RedisClient.prototype;
 
   if (!(timeline instanceof Perf)) {
@@ -118,6 +136,10 @@ function wrap({ timeline, data = {} } = {}) {
 }
 
 function unwrap() {
+  if (!redis) {
+    debug('redis plugin not accessible from trace plugin. Nothing to unwrap.');
+    return false;
+  }
   const target = redis.RedisClient && redis.RedisClient.prototype;
 
   if (process.env.IOPIPE_TRACE_REDIS_CB) {
@@ -126,6 +148,7 @@ function unwrap() {
     shimmer.unwrap(target, 'internal_send_command');
   }
   delete redis.__iopipeShimmer;
+  return true;
 }
 
 export { unwrap, wrap };
