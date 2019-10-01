@@ -8,15 +8,16 @@ const debug = debuglog('@iopipe:trace:ioredis');
 
 let Redis;
 
-loadModuleForTracing('ioredis')
-  .then(module => {
-    Redis = module;
-    return module;
-  })
-  .catch(e => {
-    debug('Not loading ioredis', e);
-    return false;
-  });
+const loadModule = async () =>
+  loadModuleForTracing('ioredis')
+    .then(module => {
+      Redis = module;
+      return module;
+    })
+    .catch(e => {
+      debug('Not loading ioredis', e);
+      return false;
+    });
 
 /*eslint-disable babel/no-invalid-this*/
 /*eslint-disable func-name-matching */
@@ -40,7 +41,8 @@ const filterRequest = (command, context) => {
   };
 };
 
-function wrap({ timeline, data = {} } = {}) {
+async function wrap({ timeline, data = {} } = {}) {
+  await loadModule();
   if (!Redis) {
     debug('ioredis plugin not accessible from trace plugin. Skipping.');
     return false;

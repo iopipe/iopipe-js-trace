@@ -16,24 +16,27 @@ let MongoClient,
   serverTarget,
   cursorTarget;
 
-loadModuleForTracing('mongodb')
-  .then(module => {
-    MongoClient = module.MongoClient;
-    Server = module.Server;
-    Cursor = module.Cursor;
-    Collection = module.Collection;
+const loadModule = async () => {
+  const mod = await loadModuleForTracing('mongodb')
+    .then(module => {
+      MongoClient = module.MongoClient;
+      Server = module.Server;
+      Cursor = module.Cursor;
+      Collection = module.Collection;
 
-    clientTarget = MongoClient && MongoClient.prototype;
-    collectionTarget = Collection && Collection.prototype;
-    serverTarget = Server && Server.prototype;
-    cursorTarget = Cursor && Cursor.prototype;
+      clientTarget = MongoClient && MongoClient.prototype;
+      collectionTarget = Collection && Collection.prototype;
+      serverTarget = Server && Server.prototype;
+      cursorTarget = Cursor && Cursor.prototype;
 
-    return module;
-  })
-  .catch(e => {
-    debug('Not loading mongodb', e);
-    return null;
-  });
+      return module;
+    })
+    .catch(e => {
+      debug('Not loading mongodb', e);
+      return null;
+    });
+  return mod;
+};
 
 const dbType = 'mongodb';
 const serverOps = ['command', 'insert', 'update', 'remove'];
@@ -169,7 +172,9 @@ const filterRequest = (params, context) => {
   };
 };
 
-function wrap({ timeline, data = {} } = {}) {
+async function wrap({ timeline, data = {} } = {}) {
+  await loadModule();
+
   if (!clientTarget) {
     debug('mongodb plugin not accessible from trace plugin. Skipping.');
     return false;

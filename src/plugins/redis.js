@@ -9,15 +9,16 @@ let redis;
 
 const debug = debuglog('@iopipe:trace:redis');
 
-loadModuleForTracing('redis')
-  .then(module => {
-    redis = module;
-    return module;
-  })
-  .catch(e => {
-    debug('Not loading redis', e);
-    return false;
-  });
+const loadModule = async () =>
+  loadModuleForTracing('redis')
+    .then(module => {
+      redis = module;
+      return module;
+    })
+    .catch(e => {
+      debug('Not loading redis', e);
+      return false;
+    });
 
 /*eslint-disable babel/no-invalid-this*/
 /*eslint-disable func-name-matching */
@@ -43,7 +44,8 @@ const filterRequest = (command, context) => {
   };
 };
 
-function wrap({ timeline, data = {} } = {}) {
+async function wrap({ timeline, data = {} } = {}) {
+  await loadModule();
   if (!redis) {
     debug('redis plugin not accessible from trace plugin. Skipping.');
     return false;
