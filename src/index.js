@@ -1,9 +1,8 @@
 import Perf from 'performance-node';
-
 import pkg from '../package.json'; // eslint-disable-line import/extensions
 import { addToReport, addTraceData } from './addToReport';
 
-const load = plugin => {
+const loadPlugin = plugin => {
   /*eslint-disable camelcase, no-undef*/
   if (typeof __non_webpack_require__ === 'function') {
     return __non_webpack_require__(`./plugins/${plugin}`);
@@ -144,7 +143,7 @@ class TracePlugin {
 
       if (context.config[conf] && context.config[conf].enabled) {
         // getting plugin; allows this to be loaded only if enabled.
-        await load(`${k}`).then(mod => {
+        await loadPlugin(`${k}`).then(mod => {
           plugins[k].wrap = mod.wrap;
           plugins[k].unwrap = mod.unwrap;
           context[namespace] = {
@@ -153,7 +152,7 @@ class TracePlugin {
             data: {},
             config: context.config[conf]
           };
-          plugins[k].wrap(context[namespace]);
+          return plugins[k].wrap(context[namespace]);
         });
       }
     });

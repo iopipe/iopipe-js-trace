@@ -1,10 +1,27 @@
 import { debuglog } from 'util';
 import shimmer from 'shimmer';
-import Redis from 'ioredis';
 import Perf from 'performance-node';
 import uuid from 'uuid/v4';
+import loadModuleForTracing from '../loadHelper';
 
-const debug = debuglog('@iopipe/trace');
+const debug = debuglog('@iopipe:trace:ioredis');
+
+let Redis, RedisTarget, RedisCmdTarget;
+
+const loadModule = () =>
+  loadModuleForTracing('ioredis')
+    .then(module => {
+      Redis = module;
+      RedisTarget = Redis && Redis.prototype;
+      if (Redis.Command && Redis.Command.prototype) {
+        RedisCmdTarget = Redis.Command && Redis.Command.prototype;
+      }
+      return module;
+    })
+    .catch(e => {
+      debug('Not loading ioredis', e);
+      return false;
+    });
 
 /*eslint-disable babel/no-invalid-this*/
 /*eslint-disable func-name-matching */
@@ -28,7 +45,12 @@ const filterRequest = (command, context) => {
   };
 };
 
-function wrap({ timeline, data = {} } = {}) {
+async function wrap({ timeline, data = {} } = {}) {
+  await loadModule();
+  if (!Redis) {
+    debug('ioredis plugin not accessible from trace plugin. Skipping.');
+    return false;
+  }
   if (!(timeline instanceof Perf)) {
     debug(
       'Timeline passed to plugins/ioredis.wrap not an instance of performance-node. Skipping.'
@@ -36,15 +58,11 @@ function wrap({ timeline, data = {} } = {}) {
     return false;
   }
 
-  if (!Redis.__iopipeShimmer) {
+  if (Redis && !Redis.__iopipeShimmer) {
     if (process.env.IOPIPE_TRACE_IOREDIS_INITPROMISE) {
-      shimmer.wrap(
-        Redis.Command && Redis.Command.prototype,
-        'initPromise',
-        wrapPromise
-      );
+      shimmer.wrap(RedisCmdTarget, 'initPromise', wrapPromise);
     }
-    shimmer.wrap(Redis && Redis.prototype, 'sendCommand', wrapSendCommand);
+    shimmer.wrap(RedisTarget, 'sendCommand', wrapSendCommand);
     Redis.__iopipeShimmer = true;
   }
 
@@ -128,11 +146,18 @@ function wrap({ timeline, data = {} } = {}) {
 }
 
 function unwrap() {
-  if (process.env.IOPIPE_TRACE_IOREDIS_INITPROMISE) {
-    shimmer.unwrap(Redis.Command && Redis.Command.prototype, 'initPromise');
+  if (!Redis) {
+    debug(
+      'ioredis plugin not accessible from trace plugin. Nothing to unwrap.'
+    );
+    return false;
   }
-  shimmer.unwrap(Redis && Redis.prototype, 'sendCommand');
+  if (process.env.IOPIPE_TRACE_IOREDIS_INITPROMISE) {
+    shimmer.unwrap(RedisCmdTarget, 'initPromise');
+  }
+  shimmer.unwrap(RedisTarget, 'sendCommand');
   delete Redis.__iopipeShimmer;
+  return true;
 }
 
 export { unwrap, wrap };

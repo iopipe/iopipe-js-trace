@@ -64,8 +64,8 @@ xtest('Redis works as normal if wrap is not called', done => {
     });
 });
 
-test('Bails if timeline is not instance of performance-node', () => {
-  const bool = wrap({ timeline: [] });
+test('Bails if timeline is not instance of performance-node', async () => {
+  const bool = await wrap({ timeline: [] });
   expect(bool).toBe(false);
 });
 
@@ -128,7 +128,7 @@ xdescribe('Wrapping Redis', () => {
         db: 1
       });
 
-      expect(redis.sendCommand.__wrapped).toBeDefined();
+      expect(redis.__wrapped).toBeDefined();
 
       const expectedStr = 'wrapped ioredis, async/await';
 
@@ -152,7 +152,7 @@ xdescribe('Wrapping Redis', () => {
 
       redis = new Redis({ host: '127.0.0.1', connectionName: 'Test 2', db: 1 });
 
-      expect(redis.sendCommand.__wrapped).toBeDefined();
+      expect(redis.__wrapped).toBeDefined();
 
       const expectedStr = 'wrapped ioredis, promise syntax';
 
@@ -185,7 +185,7 @@ xdescribe('Wrapping Redis', () => {
 
       redis = new Redis({ host: 'localhost', connectionName: 'Test 3', db: 1 });
 
-      expect(redis.sendCommand.__wrapped).toBeDefined();
+      expect(redis.__wrapped).toBeDefined();
 
       const expectedStr = 'wrapped ioredis, callback syntax';
       redis.set('testString', expectedStr);
