@@ -87,8 +87,8 @@ xtest('Redis works as normal if wrap is not called', done => {
   client.set('testString', expectedStr, setCb);
 });
 
-test('Bails if timeline is not instance of performance-node', () => {
-  const bool = wrap({ timeline: [] });
+test('Bails if timeline is not instance of performance-node', async () => {
+  const bool = await wrap({ timeline: [] });
   expect(bool).toBe(false);
 });
 

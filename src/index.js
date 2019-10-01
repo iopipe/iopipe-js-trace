@@ -143,8 +143,8 @@ class TracePlugin {
 
       if (context.config[conf] && context.config[conf].enabled) {
         // getting plugin; allows this to be loaded only if enabled.
-        await loadPlugin(`${k}`).then(async mod => {
-          plugins[k].wrap = await mod.wrap;
+        await loadPlugin(`${k}`).then(mod => {
+          plugins[k].wrap = mod.wrap;
           plugins[k].unwrap = mod.unwrap;
           context[namespace] = {
             timeline: new Perf({ timestamp: true }),
@@ -152,7 +152,7 @@ class TracePlugin {
             data: {},
             config: context.config[conf]
           };
-          plugins[k].wrap(context[namespace]);
+          return plugins[k].wrap(context[namespace]);
         });
       }
     });

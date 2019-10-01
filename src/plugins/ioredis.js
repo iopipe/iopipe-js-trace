@@ -6,12 +6,16 @@ import loadModuleForTracing from '../loadHelper';
 
 const debug = debuglog('@iopipe:trace:ioredis');
 
-let Redis;
+let Redis, RedisTarget, RedisCmdTarget;
 
-const loadModule = async () =>
+const loadModule = () =>
   loadModuleForTracing('ioredis')
     .then(module => {
       Redis = module;
+      RedisTarget = Redis && Redis.prototype;
+      if (Redis.Command && Redis.Command.prototype) {
+        RedisCmdTarget = Redis.Command && Redis.Command.prototype;
+      }
       return module;
     })
     .catch(e => {
@@ -56,13 +60,9 @@ async function wrap({ timeline, data = {} } = {}) {
 
   if (Redis && !Redis.__iopipeShimmer) {
     if (process.env.IOPIPE_TRACE_IOREDIS_INITPROMISE) {
-      shimmer.wrap(
-        Redis.Command && Redis.Command.prototype,
-        'initPromise',
-        wrapPromise
-      );
+      shimmer.wrap(RedisCmdTarget, 'initPromise', wrapPromise);
     }
-    shimmer.wrap(Redis && Redis.prototype, 'sendCommand', wrapSendCommand);
+    shimmer.wrap(RedisTarget, 'sendCommand', wrapSendCommand);
     Redis.__iopipeShimmer = true;
   }
 
@@ -153,9 +153,9 @@ function unwrap() {
     return false;
   }
   if (process.env.IOPIPE_TRACE_IOREDIS_INITPROMISE) {
-    shimmer.unwrap(Redis.Command && Redis.Command.prototype, 'initPromise');
+    shimmer.unwrap(RedisCmdTarget, 'initPromise');
   }
-  shimmer.unwrap(Redis && Redis.prototype, 'sendCommand');
+  shimmer.unwrap(RedisTarget, 'sendCommand');
   delete Redis.__iopipeShimmer;
   return true;
 }

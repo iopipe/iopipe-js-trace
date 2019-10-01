@@ -5,14 +5,15 @@ import Perf from 'performance-node';
 import uuid from 'uuid/v4';
 import loadModuleForTracing from '../loadHelper';
 
-let redis;
+let redis, redisTarget;
 
 const debug = debuglog('@iopipe:trace:redis');
 
-const loadModule = async () =>
+const loadModule = () =>
   loadModuleForTracing('redis')
     .then(module => {
       redis = module;
+      redisTarget = redis.RedisClient && redis.RedisClient.prototype;
       return module;
     })
     .catch(e => {
@@ -51,8 +52,6 @@ async function wrap({ timeline, data = {} } = {}) {
     return false;
   }
 
-  const target = redis.RedisClient && redis.RedisClient.prototype;
-
   if (!(timeline instanceof Perf)) {
     debug(
       'Timeline passed to plugins/ioredis.wrap not an instance of performance-node. Skipping.'
@@ -62,11 +61,15 @@ async function wrap({ timeline, data = {} } = {}) {
 
   if (!redis.__iopipeShimmer) {
     if (process.env.IOPIPE_TRACE_REDIS_CB) {
-      shimmer.wrap(target, 'send_command', wrapSendCommand); // redis < 2.5.3
+      shimmer.wrap(redisTarget, 'send_command', wrapSendCommand); // redis < 2.5.3
     } else {
-      shimmer.wrap(target, 'internal_send_command', wrapInternalSendCommand);
+      shimmer.wrap(
+        redisTarget,
+        'internal_send_command',
+        wrapInternalSendCommand
+      );
     }
-    target.__iopipeShimmer = true;
+    redisTarget.__iopipeShimmer = true;
   }
 
   return true;
@@ -142,14 +145,13 @@ function unwrap() {
     debug('redis plugin not accessible from trace plugin. Nothing to unwrap.');
     return false;
   }
-  const target = redis.RedisClient && redis.RedisClient.prototype;
 
   if (process.env.IOPIPE_TRACE_REDIS_CB) {
-    shimmer.unwrap(target, 'send_command');
+    shimmer.unwrap(redisTarget, 'send_command');
   } else {
-    shimmer.unwrap(target, 'internal_send_command');
+    shimmer.unwrap(redisTarget, 'internal_send_command');
   }
-  delete redis.__iopipeShimmer;
+  delete redisTarget.__iopipeShimmer;
   return true;
 }
 

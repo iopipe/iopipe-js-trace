@@ -229,8 +229,8 @@ xdescribe('MongoDb works as normal if wrap is not called', () => {
   });
 });
 
-test('Bails if timeline is not instance of performance-node', () => {
-  const bool = wrap({ timeline: [] });
+test('Bails if timeline is not instance of performance-node', async () => {
+  const bool = await wrap({ timeline: [] });
   expect(bool).toBe(false);
 });
 
@@ -290,36 +290,36 @@ xdescribe('Wrapping MongoDB', () => {
     });
   });
   // */
-  test('Wrap works with connect', done => {
+  test('Wrap works with connect', async () => {
     const timeline = new Perf({ timestamp: true });
     const data = {};
-    wrap({ timeline, data });
+    await wrap({ timeline, data });
     const c = createClient();
     expect(c.__iopipeShimmer).toBe(true);
-    c.connect(err => {
+    return c.connect(err => {
       expect(err).toBeNull();
       timelineExpect(timeline, data, {
         commandName: 'connect',
         dbName: 'admin'
       });
-      c.close();
-      return done(err);
+      return c.close();
+      //return done(err);
     });
   });
-  test('Wrap generates traces for insert', done => {
+  test('Wrap generates traces for insert', async () => {
     const timeline = new Perf({ timestamp: true });
     const data = {};
     expect(timeline.data).toHaveLength(0);
-    wrap({ timeline, data });
+    await wrap({ timeline, data });
     const c = createClient();
     expect(c.__iopipeShimmer).toBe(true);
-    c.connect((clErr, client) => {
+    c.connect(async (clErr, client) => {
       expect(clErr).toBeNull();
 
       const documents = [{ a: 1 }, { b: 2 }, { c: 3 }];
       const db = client.db(dbName);
 
-      insertDocuments(documents, collection, db, (err, result) => {
+      await insertDocuments(documents, collection, db, (err, result) => {
         expect(err).toBeNull();
         expect(result.result.ok).toBe(1);
         expect(result.result.n).toBe(documents.length);
@@ -331,15 +331,15 @@ xdescribe('Wrapping MongoDB', () => {
           dbName,
           collection
         });
-        c.close();
-        return done(err);
+        return c.close();
+        // return done(err);
       });
     });
   });
-  test('Wrap generates traces for find', done => {
+  test('Wrap generates traces for find', async () => {
     const timeline = new Perf({ timestamp: true });
     const data = {};
-    wrap({ timeline, data });
+    await wrap({ timeline, data });
     expect(timeline.data).toHaveLength(0);
     const c = createClient();
     expect(c.__iopipeShimmer).toBe(true);
@@ -357,42 +357,48 @@ xdescribe('Wrapping MongoDB', () => {
           dbName,
           collection
         });
-        c.close();
-        return done(err);
+        return c.close();
+        //return done(err);
       });
     });
   });
-  test('Wrap generates traces for update', done => {
+  test('Wrap generates traces for update', async () => {
     const timeline = new Perf({ timestamp: true });
     const data = {};
-    wrap({ timeline, data });
+    await wrap({ timeline, data });
     expect(timeline.data).toHaveLength(0);
     const c = createClient();
-    c.connect((clErr, client) => {
+    c.connect(async (clErr, client) => {
       expect(clErr).toBeNull();
       const db = client.db(dbName);
 
-      updateDocument({ a: 1 }, { a: 7 }, collection, db, (err, results) => {
-        expect(err).toBeNull();
-        expect(results).toBeDefined();
-        expect(results.result.n).toBe(1);
-        expect(results.result.nModified).toBe(1);
-        expect(results.result.ok).toBe(1);
+      await updateDocument(
+        { a: 1 },
+        { a: 7 },
+        collection,
+        db,
+        (err, results) => {
+          expect(err).toBeNull();
+          expect(results).toBeDefined();
+          expect(results.result.n).toBe(1);
+          expect(results.result.nModified).toBe(1);
+          expect(results.result.ok).toBe(1);
 
-        timelineExpect(timeline, data, {
-          commandName: 'updateOne',
-          dbName,
-          collection
-        });
-        c.close();
-        return done(err);
-      });
+          timelineExpect(timeline, data, {
+            commandName: 'updateOne',
+            dbName,
+            collection
+          });
+          return c.close();
+          // return done(err);
+        }
+      );
     });
   });
-  test('Wrap generates traces for delete', done => {
+  test('Wrap generates traces for delete', async () => {
     const timeline = new Perf({ timestamp: true });
     const data = {};
-    wrap({ timeline, data });
+    await wrap({ timeline, data });
     expect(timeline.data).toHaveLength(0);
     const c = createClient();
     c.connect((clErr, client) => {
@@ -410,15 +416,15 @@ xdescribe('Wrapping MongoDB', () => {
           dbName,
           collection
         });
-        c.close();
-        return done(err);
+        return c.close();
+        // return done(err);
       });
     });
   });
-  test('Client can trace bulk writes', done => {
+  test('Client can trace bulk writes', async () => {
     const timeline = new Perf({ timestamp: true });
     const data = {};
-    wrap({ timeline, data });
+    await wrap({ timeline, data });
     expect(timeline.data).toHaveLength(0);
     const c = createClient();
     c.connect(async (clErr, client) => {
@@ -477,7 +483,7 @@ xdescribe('Wrapping MongoDB', () => {
       expect(data[lastKey].name).toBe('bulkWrite');
       expect(data[lastKey].request.bulkCommands).toBeDefined();
       expect(data[lastKey].request.bulkCommands).toBe(bulkCommands);
-      return done();
+      return data;
     });
   });
 });
