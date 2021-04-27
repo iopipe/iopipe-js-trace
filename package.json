@@ -43,7 +43,7 @@
     "ioredis": "^4",
     "lodash": "^4.17.4",
     "mongodb": "^3.3",
-    "redis": "^2",
+    "redis": "^3",
     "superagent": "^3.8.3"
   },
   "dependencies": {
