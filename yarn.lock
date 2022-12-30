@@ -733,7 +733,7 @@ babel-core@^6.26.0:
 
 babel-eslint@^8.0.1:
   version "8.2.2"
-  resolved "http://registry.npmjs.org/babel-eslint/-/babel-eslint-8.2.2.tgz#1102273354c6f0b29b4ea28a65f97d122296b68b"
+  resolved "https://registry.npmjs.org/babel-eslint/-/babel-eslint-8.2.2.tgz#1102273354c6f0b29b4ea28a65f97d122296b68b"
   dependencies:
     "@babel/code-frame" "^7.0.0-beta.40"
     "@babel/traverse" "^7.0.0-beta.40"
@@ -3325,11 +3325,10 @@ flat-cache@^1.2.1:
     graceful-fs "^4.1.2"
     write "^0.2.1"
 
-flat@^4.0.0:
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/flat/-/flat-4.0.0.tgz#3abc7f3b588e64ce77dc42fd59aa35806622fea8"
-  dependencies:
-    is-buffer "~1.1.5"
+flat@^5.0.1:
+  version "5.0.1"
+  resolved "https://registry.yarnpkg.com/flat/-/flat-5.0.1.tgz#ed5f357d6c9e754d1fdc392b1d570426f8e013c2"
+  integrity sha512-DUYDWLlMhV9qvhjbgmhDQ3ZycXmoOKzrj4KN0+5BEat5SqTlXcXzxNgwiSN1UQHA5Z0BsgYYPelhQHVhpfqaVA==
 
 for-in@^1.0.1, for-in@^1.0.2:
   version "1.0.2"
@@ -4171,10 +4170,6 @@ is-binary-path@^1.0.0:
 is-buffer@^1.1.5:
   version "1.1.5"
   resolved "https://registry.yarnpkg.com/is-buffer/-/is-buffer-1.1.5.tgz#1f3b26ef613b214b88cbca23cc6c01d87961eecc"
-
-is-buffer@~1.1.5:
-  version "1.1.6"
-  resolved "https://registry.yarnpkg.com/is-buffer/-/is-buffer-1.1.6.tgz#efaa2ea9daa0d7ab2ea13a97b2b8ad51fefbe8be"
 
 is-builtin-module@^1.0.0:
   version "1.0.0"

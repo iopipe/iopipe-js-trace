@@ -47,7 +47,7 @@
     "superagent": "^3.8.3"
   },
   "dependencies": {
-    "flat": "^4.0.0",
+    "flat": "^5.0.1",
     "isarray": "^2.0.4",
     "lodash.pickby": "^4.6.0",
     "performance-node": "^0",
